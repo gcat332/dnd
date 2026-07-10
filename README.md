@@ -6,6 +6,14 @@ This repository is currently in the wayfinding/design stage. The domain language
 
 Agent setup for continuing development lives in [AGENTS.md](./AGENTS.md), [CLAUDE.md](./CLAUDE.md), and [docs/agents](./docs/agents). A fresh machine still needs the required agent skills/plugins installed; see [docs/agents/skill-prerequisites.md](./docs/agents/skill-prerequisites.md).
 
+After pulling the repo, install the repo-local agent skills with:
+
+```bash
+./scripts/bootstrap-agent-skills.sh
+```
+
+Run `./scripts/bootstrap-agent-skills.sh --check-only` to inspect missing external skills without installing anything.
+
 ## Product Direction
 
 The project is a remote-first tabletop, not a video meeting app. Players join live sessions through the browser, play together on a shared square-grid battle map, and return later to saved campaign and session state.

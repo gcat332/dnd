@@ -4,6 +4,12 @@ This repo is a large browser tabletop project with realtime collaboration, rules
 
 For a fresh checkout, first verify the required skills/plugins in `docs/agents/skill-prerequisites.md`.
 
+Repo-local skills can be installed with:
+
+```bash
+./scripts/bootstrap-agent-skills.sh
+```
+
 ## Planning and product discovery
 
 - `wayfinder`: Use for the overall project map and large unclear chunks of work. One session should chart or resolve at most one Wayfinder ticket.

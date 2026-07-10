@@ -17,3 +17,5 @@ This is a single-context repo. Read `CONTEXT.md` at the repo root and ADRs under
 ### Development skills
 
 Use the repo skill profile in `docs/agents/dev-skills.md` to choose the right planning, design, implementation, testing, review, GitHub, and OpenAI API workflows.
+
+After a fresh checkout, run `./scripts/bootstrap-agent-skills.sh` to install repo-local skills into the local Codex skill directory.

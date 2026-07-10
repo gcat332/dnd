@@ -2,6 +2,20 @@
 
 This repo documents the skill workflow, but it does not vendor or auto-install external agent skills. A person who pulls the repo can continue smoothly only if their agent environment has the needed skills/plugins available.
 
+The repo does include project-local skills under `skills/`. Install them explicitly after pulling:
+
+```bash
+./scripts/bootstrap-agent-skills.sh
+```
+
+This creates symlinks in `$CODEX_HOME/skills`, or `~/.codex/skills` when `CODEX_HOME` is unset. Use `--copy` if symlinks are not desired.
+
+Check what is missing without installing:
+
+```bash
+./scripts/bootstrap-agent-skills.sh --check-only
+```
+
 ## Required for Wayfinder planning
 
 - `wayfinder`
@@ -59,8 +73,9 @@ Use these before implementing, configuring, running, or debugging OpenAI API-bac
 
 1. Pull the repo.
 2. Confirm `gh auth status` works.
-3. Confirm the agent can read `AGENTS.md` or `CLAUDE.md`.
-4. Confirm the skills listed above are available in the agent environment.
-5. Read `CONTEXT.md`, `docs/agents/dev-skills.md`, and the open Wayfinder map before starting work.
+3. Run `./scripts/bootstrap-agent-skills.sh`.
+4. Confirm the agent can read `AGENTS.md` or `CLAUDE.md`.
+5. Confirm the external skills listed above are available in the agent environment.
+6. Read `CONTEXT.md`, `docs/agents/dev-skills.md`, and the open Wayfinder map before starting work.
 
 If a required skill is missing, install it into the agent environment or use the closest available workflow and document the gap in the GitHub issue you are working on.
