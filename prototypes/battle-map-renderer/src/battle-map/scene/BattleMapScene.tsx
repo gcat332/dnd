@@ -2,6 +2,7 @@ import { useThree } from '@react-three/fiber'
 import { useEffect, useMemo } from 'react'
 import type { ChunkAddress } from '../domain/chunks'
 import { MAP_SIZE_CELLS } from '../domain/grid'
+import type { MoveIntent, TokenRenderState } from '../domain/tokens'
 import {
   mapDetailMode,
   visibleChunkAddresses,
@@ -12,6 +13,7 @@ import { useBattleMapView } from '../state/useBattleMapView'
 import { DimensionalTerrain } from './DimensionalTerrain'
 import { chunkAddressKey, MapSurface } from './MapSurface'
 import { ProceduralGrid } from './ProceduralGrid'
+import { TokenLayer } from './TokenLayer'
 
 const CELL_TEXTURE_PIXELS = 64
 
@@ -44,7 +46,18 @@ export function useSceneSelection(): SceneSelection {
   )
 }
 
-export function BattleMapScene() {
+type BattleMapSceneProps = {
+  tokens?: readonly TokenRenderState[]
+  onMoveIntent?: (intent: MoveIntent) => void
+}
+
+const NO_TOKENS: readonly TokenRenderState[] = []
+const IGNORE_MOVE_INTENT = () => undefined
+
+export function BattleMapScene({
+  tokens = NO_TOKENS,
+  onMoveIntent = IGNORE_MOVE_INTENT,
+}: BattleMapSceneProps = {}) {
   const invalidate = useThree((state) => state.invalidate)
   const { mode, visibleChunks } = useSceneSelection()
   const visibleChunkKeys = visibleChunks.map(chunkAddressKey).join(',')
@@ -65,6 +78,7 @@ export function BattleMapScene() {
       <MapSurface mode={mode} visibleChunks={visibleChunks} />
       <ProceduralGrid />
       <DimensionalTerrain />
+      <TokenLayer tokens={tokens} onMoveIntent={onMoveIntent} />
     </>
   )
 }

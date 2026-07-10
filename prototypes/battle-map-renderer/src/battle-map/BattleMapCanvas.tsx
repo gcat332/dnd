@@ -2,6 +2,7 @@ import { MapControls } from '@react-three/drei'
 import { Canvas, useThree } from '@react-three/fiber'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { MapControls as MapControlsImpl } from 'three-stdlib'
+import type { MoveIntent, TokenRenderState } from './domain/tokens'
 import { useBattleMapView } from './state/useBattleMapView'
 import { BattleMapScene, useSceneSelection } from './scene/BattleMapScene'
 import { chunkAddressKey } from './scene/MapSurface'
@@ -10,12 +11,24 @@ type BattleMapCameraProps = {
   onReady: () => void
 }
 
+const FIXTURE_TOKENS: readonly TokenRenderState[] = [
+  {
+    id: 'fixture-token',
+    label: 'Fixture Token',
+    cell: { column: 99, row: 99 },
+    elevation: 0,
+    color: '#37ff78',
+    visible: true,
+  },
+]
+
 function BattleMapCamera({ onReady }: BattleMapCameraProps) {
   const controls = useRef<MapControlsImpl>(null)
   const camera = useThree((state) => state.camera)
   const size = useThree((state) => state.size)
   const invalidate = useThree((state) => state.invalidate)
   const setCamera = useBattleMapView((state) => state.setCamera)
+  const dragPreview = useBattleMapView((state) => state.dragPreview)
 
   const syncViewState = useCallback(() => {
     const target = controls.current?.target
@@ -36,6 +49,7 @@ function BattleMapCamera({ onReady }: BattleMapCameraProps) {
     <MapControls
       ref={controls}
       target={[100, 0, 100]}
+      enabled={dragPreview === null}
       enableDamping={false}
       enableRotate={false}
       minZoom={4}
@@ -43,6 +57,22 @@ function BattleMapCamera({ onReady }: BattleMapCameraProps) {
       zoomSpeed={24}
       screenSpacePanning={false}
       onChange={syncViewState}
+    />
+  )
+}
+
+type TokenInteractionDiagnosticsProps = {
+  moveIntents: readonly MoveIntent[]
+}
+
+function TokenInteractionDiagnostics({ moveIntents }: TokenInteractionDiagnosticsProps) {
+  const dragPreview = useBattleMapView((state) => state.dragPreview)
+  return (
+    <output
+      hidden
+      data-testid="token-interaction-diagnostics"
+      data-drag-preview={dragPreview ? JSON.stringify(dragPreview) : ''}
+      data-move-intents={JSON.stringify(moveIntents)}
     />
   )
 }
@@ -66,7 +96,12 @@ function ChunkDiagnostics({ cameraReady }: ChunkDiagnosticsProps) {
 
 export function BattleMapCanvas() {
   const [cameraReady, setCameraReady] = useState(false)
+  const [moveIntents, setMoveIntents] = useState<readonly MoveIntent[]>([])
   const markCameraReady = useCallback(() => setCameraReady(true), [])
+  const recordMoveIntent = useCallback(
+    (intent: MoveIntent) => setMoveIntents((current) => [...current, intent]),
+    [],
+  )
 
   return (
     <div className="battle-map-shell">
@@ -81,9 +116,10 @@ export function BattleMapCanvas() {
       >
         <color attach="background" args={['#171a1f']} />
         <BattleMapCamera onReady={markCameraReady} />
-        <BattleMapScene />
+        <BattleMapScene tokens={FIXTURE_TOKENS} onMoveIntent={recordMoveIntent} />
       </Canvas>
       <ChunkDiagnostics cameraReady={cameraReady} />
+      <TokenInteractionDiagnostics moveIntents={moveIntents} />
     </div>
   )
 }
