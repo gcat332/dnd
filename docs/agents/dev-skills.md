@@ -2,9 +2,9 @@
 
 This repo is a large browser tabletop project with realtime collaboration, rules automation, content editing, and AI-assisted generation. Use these skills deliberately instead of improvising the workflow.
 
-For a fresh checkout, first verify the required skills/plugins in `docs/agents/skill-prerequisites.md`.
+For a fresh checkout, first verify or install the bundled skills described in `docs/agents/skill-prerequisites.md`.
 
-Repo-local skills can be installed with:
+Project and vendored skills can be installed with:
 
 ```bash
 ./scripts/bootstrap-agent-skills.sh

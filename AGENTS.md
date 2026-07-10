@@ -18,4 +18,4 @@ This is a single-context repo. Read `CONTEXT.md` at the repo root and ADRs under
 
 Use the repo skill profile in `docs/agents/dev-skills.md` to choose the right planning, design, implementation, testing, review, GitHub, and OpenAI API workflows.
 
-After a fresh checkout, run `./scripts/bootstrap-agent-skills.sh` to install repo-local skills into the local Codex skill directory.
+At the start of work in a fresh checkout, if `dnd-project-dev`, `dnd-wayfinder`, `wayfinder`, or the other required skills are not installed in the local Codex skill directory, run `./scripts/bootstrap-agent-skills.sh` before continuing. This installs the bundled project and vendored skills from `skills/`.

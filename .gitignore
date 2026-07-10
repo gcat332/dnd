@@ -9,7 +9,7 @@
 node_modules/
 .pnpm-store/
 .yarn/
-vendor/
+/vendor/
 
 # Build output
 dist/

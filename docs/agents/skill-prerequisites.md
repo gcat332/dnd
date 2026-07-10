@@ -1,14 +1,22 @@
 # Skill Prerequisites
 
-This repo documents the skill workflow, but it does not vendor or auto-install external agent skills. A person who pulls the repo can continue smoothly only if their agent environment has the needed skills/plugins available.
+This repo documents the skill workflow and vendors the core project skills needed to continue planning and development. A person who pulls the repo can install those bundled skills into their local Codex skill directory with the bootstrap script.
 
-The repo does include project-local skills under `skills/`. Install them explicitly after pulling:
+The repo includes:
+
+- `skills/project/*`: DnD project-specific skills.
+- `skills/vendor/agents/*`: vendored planning and development skills.
+- `skills/vendor/superpowers/*`: vendored superpowers workflow skills used by this repo.
+
+Install them explicitly after pulling:
 
 ```bash
 ./scripts/bootstrap-agent-skills.sh
 ```
 
 This creates symlinks in `$CODEX_HOME/skills`, or `~/.codex/skills` when `CODEX_HOME` is unset. Use `--copy` if symlinks are not desired.
+
+Agent instruction files (`AGENTS.md` and `CLAUDE.md`) tell agents to run this bootstrap script at the start of work in a fresh checkout when required skills are missing. This is intentionally explicit rather than a hidden `git pull` side effect.
 
 Check what is missing without installing:
 
@@ -26,7 +34,7 @@ Check what is missing without installing:
 - `to-spec`
 - `to-tickets`
 
-These are used to maintain the GitHub Issues map, resolve planning tickets, keep `CONTEXT.md` accurate, and turn decisions into specs or tickets.
+These are vendored under `skills/vendor/agents` and used to maintain the GitHub Issues map, resolve planning tickets, keep `CONTEXT.md` accurate, and turn decisions into specs or tickets.
 
 ## Required for implementation
 
@@ -40,7 +48,7 @@ These are used to maintain the GitHub Issues map, resolve planning tickets, keep
 - `design-an-interface`
 - `code-review` or `superpowers:requesting-code-review`
 
-These cover feature design, implementation plans, rules-engine testing, debugging, verification, and code review.
+Most of these are vendored under `skills/vendor/agents` or `skills/vendor/superpowers`. They cover feature design, implementation plans, rules-engine testing, debugging, verification, and code review.
 
 ## Required for GitHub workflow
 
@@ -75,7 +83,7 @@ Use these before implementing, configuring, running, or debugging OpenAI API-bac
 2. Confirm `gh auth status` works.
 3. Run `./scripts/bootstrap-agent-skills.sh`.
 4. Confirm the agent can read `AGENTS.md` or `CLAUDE.md`.
-5. Confirm the external skills listed above are available in the agent environment.
+5. Confirm the bundled skills listed above are available in the agent environment.
 6. Read `CONTEXT.md`, `docs/agents/dev-skills.md`, and the open Wayfinder map before starting work.
 
 If a required skill is missing, install it into the agent environment or use the closest available workflow and document the gap in the GitHub issue you are working on.

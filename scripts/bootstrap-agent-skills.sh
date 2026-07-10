@@ -5,13 +5,13 @@ usage() {
   cat <<'EOF'
 Usage: scripts/bootstrap-agent-skills.sh [--copy] [--force] [--check-only]
 
-Installs this repo's local agent skills into $CODEX_HOME/skills, or
+Installs this repo's bundled agent skills into $CODEX_HOME/skills, or
 ~/.codex/skills when CODEX_HOME is unset.
 
 Options:
   --copy        Copy skill directories instead of symlinking them.
-  --force       Replace an existing repo-local skill destination.
-  --check-only  Do not install; only report local and external skill status.
+  --force       Replace an existing bundled skill destination.
+  --check-only  Do not install; only report bundled and installed skill status.
   -h, --help    Show this help.
 EOF
 }
@@ -50,7 +50,9 @@ SOURCE_DIR="$REPO_ROOT/skills"
 CODEX_HOME="${CODEX_HOME:-$HOME/.codex}"
 DEST_DIR="$CODEX_HOME/skills"
 
-REQUIRED_EXTERNAL_SKILLS=(
+REQUIRED_SKILLS=(
+  "dnd-project-dev"
+  "dnd-wayfinder"
   "wayfinder"
   "grilling"
   "domain-modeling"
@@ -63,19 +65,37 @@ REQUIRED_EXTERNAL_SKILLS=(
   "diagnosing-bugs"
   "codebase-design"
   "design-an-interface"
+  "brainstorming"
+  "writing-plans"
+  "test-driven-development"
+  "systematic-debugging"
+  "verification-before-completion"
+  "requesting-code-review"
+  "using-superpowers"
+  "writing-skills"
 )
 
-OPTIONAL_EXTERNAL_SKILLS=(
+OPTIONAL_SKILLS=(
   "setup-pre-commit"
   "post-mortem"
   "ubiquitous-language"
+  "using-git-worktrees"
 )
+
+find_bundled_skill_dir() {
+  local skill="$1"
+  local skill_file
+  skill_file="$(find "$SOURCE_DIR" -type f -path "*/$skill/SKILL.md" -print -quit)"
+  if [ -n "$skill_file" ]; then
+    dirname "$skill_file"
+  fi
+}
 
 has_skill() {
   local skill="$1"
   [ -f "$DEST_DIR/$skill/SKILL.md" ] ||
     [ -f "$HOME/.agents/skills/$skill/SKILL.md" ] ||
-    [ -f "$REPO_ROOT/skills/$skill/SKILL.md" ]
+    [ -n "$(find_bundled_skill_dir "$skill")" ]
 }
 
 print_skill_status() {
@@ -101,13 +121,13 @@ echo "Codex skills dir: $DEST_DIR"
 echo
 
 if [ ! -d "$SOURCE_DIR" ]; then
-  echo "No repo-local skills directory found: $SOURCE_DIR" >&2
+  echo "No bundled skills directory found: $SOURCE_DIR" >&2
   exit 1
 fi
 
-print_skill_status "Required external skills:" "${REQUIRED_EXTERNAL_SKILLS[@]}" || true
+print_skill_status "Required skills:" "${REQUIRED_SKILLS[@]}" || true
 echo
-print_skill_status "Optional external skills:" "${OPTIONAL_EXTERNAL_SKILLS[@]}" || true
+print_skill_status "Optional skills:" "${OPTIONAL_SKILLS[@]}" || true
 echo
 
 if [ "$CHECK_ONLY" = "true" ]; then
@@ -117,16 +137,16 @@ fi
 mkdir -p "$DEST_DIR"
 
 found_local="false"
-for skill_dir in "$SOURCE_DIR"/*; do
-  [ -d "$skill_dir" ] || continue
-  [ -f "$skill_dir/SKILL.md" ] || continue
+while IFS= read -r skill_file; do
+  [ -n "$skill_file" ] || continue
+  skill_dir="$(dirname "$skill_file")"
 
   found_local="true"
   skill_name="$(basename "$skill_dir")"
   dest="$DEST_DIR/$skill_name"
 
   if [ -e "$dest" ] || [ -L "$dest" ]; then
-    if [ "$FORCE" != "true" ]; then
+    if [ "$FORCE" != "true" ] && [ -e "$dest" ]; then
       echo "skip    $skill_name already exists at $dest"
       continue
     fi
@@ -140,10 +160,10 @@ for skill_dir in "$SOURCE_DIR"/*; do
     ln -s "$skill_dir" "$dest"
     echo "symlink $skill_name -> $dest"
   fi
-done
+done < <(find "$SOURCE_DIR" -mindepth 2 -name SKILL.md -print | sort)
 
 if [ "$found_local" != "true" ]; then
-  echo "No repo-local skills found under $SOURCE_DIR" >&2
+  echo "No bundled skills found under $SOURCE_DIR" >&2
   exit 1
 fi
 

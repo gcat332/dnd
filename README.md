@@ -4,15 +4,15 @@ A browser-based virtual tabletop for playing DnD-style campaigns with friends on
 
 This repository is currently in the wayfinding/design stage. The domain language captured so far lives in [CONTEXT.md](./CONTEXT.md).
 
-Agent setup for continuing development lives in [AGENTS.md](./AGENTS.md), [CLAUDE.md](./CLAUDE.md), and [docs/agents](./docs/agents). A fresh machine still needs the required agent skills/plugins installed; see [docs/agents/skill-prerequisites.md](./docs/agents/skill-prerequisites.md).
+Agent setup for continuing development lives in [AGENTS.md](./AGENTS.md), [CLAUDE.md](./CLAUDE.md), and [docs/agents](./docs/agents). This repo bundles project and vendored skills under [skills](./skills); see [docs/agents/skill-prerequisites.md](./docs/agents/skill-prerequisites.md).
 
-After pulling the repo, install the repo-local agent skills with:
+After pulling the repo, install the bundled agent skills with:
 
 ```bash
 ./scripts/bootstrap-agent-skills.sh
 ```
 
-Run `./scripts/bootstrap-agent-skills.sh --check-only` to inspect missing external skills without installing anything.
+Run `./scripts/bootstrap-agent-skills.sh --check-only` to inspect available skills without installing anything.
 
 ## Product Direction
 
