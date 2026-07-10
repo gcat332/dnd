@@ -13,3 +13,7 @@ Use the default triage label vocabulary: `needs-triage`, `needs-info`, `ready-fo
 ### Domain docs
 
 This is a single-context repo. Read `CONTEXT.md` at the repo root and ADRs under `docs/adr/` when relevant. See `docs/agents/domain.md`.
+
+### Development skills
+
+Use the repo skill profile in `docs/agents/dev-skills.md` to choose the right planning, design, implementation, testing, review, GitHub, and OpenAI API workflows.
