@@ -9,18 +9,15 @@ export function visibleChunkAddresses(
   cellTexturePixels: number,
   prefetchRings = 1,
 ): readonly ChunkAddress[] {
+  if (!Number.isInteger(prefetchRings) || prefetchRings < 0) {
+    throw new RangeError('Prefetch rings must be a non-negative integer')
+  }
   const span = chunkCellSpan(cellTexturePixels)
   const maxChunk = Math.ceil(MAP_SIZE_CELLS / span) - 1
   const minColumn = Math.max(0, Math.floor(bounds.minX / span) - prefetchRings)
   const minRow = Math.max(0, Math.floor(bounds.minZ / span) - prefetchRings)
-  const maxColumn = Math.min(
-    maxChunk,
-    Math.floor((bounds.maxX - Number.EPSILON) / span) + prefetchRings,
-  )
-  const maxRow = Math.min(
-    maxChunk,
-    Math.floor((bounds.maxZ - Number.EPSILON) / span) + prefetchRings,
-  )
+  const maxColumn = Math.min(maxChunk, Math.ceil(bounds.maxX / span) - 1 + prefetchRings)
+  const maxRow = Math.min(maxChunk, Math.ceil(bounds.maxZ / span) - 1 + prefetchRings)
   const addresses: ChunkAddress[] = []
   for (let row = minRow; row <= maxRow; row += 1) {
     for (let column = minColumn; column <= maxColumn; column += 1) {

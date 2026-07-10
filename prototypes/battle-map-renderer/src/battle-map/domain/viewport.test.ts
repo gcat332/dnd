@@ -15,6 +15,26 @@ it('adds one prefetch ring and clamps chunks to the Battle Map', () => {
   ])
 })
 
+it('adds exactly one prefetch ring at chunk-aligned maximum bounds', () => {
+  expect(visibleChunkAddresses({ minX: 32, minZ: 32, maxX: 64, maxZ: 64 }, 64, 1)).toEqual([
+    { column: 0, row: 0 },
+    { column: 1, row: 0 },
+    { column: 2, row: 0 },
+    { column: 0, row: 1 },
+    { column: 1, row: 1 },
+    { column: 2, row: 1 },
+    { column: 0, row: 2 },
+    { column: 1, row: 2 },
+    { column: 2, row: 2 },
+  ])
+})
+
+it.each([-1, 0.5])('rejects an invalid prefetch ring count of %s', (prefetchRings) => {
+  expect(() =>
+    visibleChunkAddresses({ minX: 32, minZ: 32, maxX: 64, maxZ: 64 }, 64, prefetchRings),
+  ).toThrow(RangeError)
+})
+
 it('uses the overview when more than 96 cells are visible', () => {
   expect(mapDetailMode(97)).toBe('overview')
   expect(mapDetailMode(96)).toBe('detail')
