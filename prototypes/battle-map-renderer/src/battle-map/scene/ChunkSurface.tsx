@@ -10,12 +10,18 @@ const UNIT_PLANE = new PlaneGeometry(1, 1)
 
 type ChunkSurfaceProps = {
   address: ChunkAddress
+  loadTexture?: (address: ChunkAddress) => Promise<Texture>
 }
 
-export function ChunkSurface({ address }: ChunkSurfaceProps) {
+type ChunkLoadState = 'loading' | 'ready' | 'failed'
+
+const loadFixtureTexture = async (address: ChunkAddress): Promise<Texture> => createChunkTexture(address)
+
+export function ChunkSurface({ address, loadTexture = loadFixtureTexture }: ChunkSurfaceProps) {
   const invalidate = useThree((state) => state.invalidate)
   const material = useRef<MeshStandardMaterial>(null)
   const [texture, setTexture] = useState<Texture | null>(null)
+  const [loadState, setLoadState] = useState<ChunkLoadState>('loading')
   const bounds = chunkBounds(address, CELL_TEXTURE_PIXELS)
   const width = bounds.maxColumnExclusive - bounds.minColumn
   const depth = bounds.maxRowExclusive - bounds.minRow
@@ -23,8 +29,10 @@ export function ChunkSurface({ address }: ChunkSurfaceProps) {
   useEffect(() => {
     let active = true
     let loadedTexture: Texture | null = null
+    setTexture(null)
+    setLoadState('loading')
 
-    void loadChunkWithRetry(address, async (chunkAddress) => createChunkTexture(chunkAddress)).then(
+    void loadChunkWithRetry(address, loadTexture).then(
       (resource) => {
         loadedTexture = resource
         if (!active) {
@@ -32,6 +40,13 @@ export function ChunkSurface({ address }: ChunkSurfaceProps) {
           return
         }
         setTexture(resource)
+        setLoadState('ready')
+        invalidate()
+      },
+      () => {
+        if (!active) return
+        setTexture(null)
+        setLoadState('failed')
         invalidate()
       },
     )
@@ -40,16 +55,18 @@ export function ChunkSurface({ address }: ChunkSurfaceProps) {
       active = false
       loadedTexture?.dispose()
     }
-  }, [address.column, address.row, invalidate])
+  }, [address.column, address.row, invalidate, loadTexture])
 
   useLayoutEffect(() => {
-    if (!texture || !material.current) return
+    if (!material.current) return
     material.current.needsUpdate = true
     invalidate()
   }, [invalidate, texture])
 
   return (
     <mesh
+      name={`chunk-surface-${address.column}:${address.row}`}
+      userData={{ loadState }}
       position={[
         bounds.minColumn + width / 2,
         0,
@@ -62,7 +79,7 @@ export function ChunkSurface({ address }: ChunkSurfaceProps) {
       <primitive object={UNIT_PLANE} attach="geometry" />
       <meshStandardMaterial
         ref={material}
-        color={texture ? '#ffffff' : '#455f3e'}
+        color={loadState === 'failed' ? '#7a3b32' : texture ? '#ffffff' : '#455f3e'}
         map={texture}
         roughness={0.96}
         metalness={0}

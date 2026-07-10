@@ -6,11 +6,12 @@ import {
   SRGBColorSpace,
   UnsignedByteType,
 } from 'three'
-import { MAX_CHUNK_CELLS, type ChunkAddress } from '../domain/chunks'
+import { chunkBounds, type ChunkAddress } from '../domain/chunks'
 import { MAP_SIZE_CELLS } from '../domain/grid'
 
 const CHUNK_TEXTURE_SIZE = 64
 const OVERVIEW_TEXTURE_SIZE = 128
+const CELL_TEXTURE_PIXELS = 64
 
 function terrainColor(worldX: number, worldZ: number): readonly [number, number, number] {
   const variation = Math.sin(worldX * 0.17) * 7 + Math.cos(worldZ * 0.13) * 6
@@ -54,17 +55,18 @@ function createTexture(
 }
 
 export function createChunkTexture(address: ChunkAddress): DataTexture {
-  const minX = address.column * MAX_CHUNK_CELLS
-  const minZ = address.row * MAX_CHUNK_CELLS
+  const bounds = chunkBounds(address, CELL_TEXTURE_PIXELS)
+  const width = bounds.maxColumnExclusive - bounds.minColumn
+  const depth = bounds.maxRowExclusive - bounds.minRow
   return createTexture(CHUNK_TEXTURE_SIZE, (x, y) => [
-    minX + ((x + 0.5) / CHUNK_TEXTURE_SIZE) * MAX_CHUNK_CELLS,
-    minZ + ((y + 0.5) / CHUNK_TEXTURE_SIZE) * MAX_CHUNK_CELLS,
+    bounds.minColumn + ((x + 0.5) / CHUNK_TEXTURE_SIZE) * width,
+    bounds.maxRowExclusive - ((y + 0.5) / CHUNK_TEXTURE_SIZE) * depth,
   ])
 }
 
 export function createOverviewTexture(): DataTexture {
   return createTexture(OVERVIEW_TEXTURE_SIZE, (x, y) => [
     ((x + 0.5) / OVERVIEW_TEXTURE_SIZE) * MAP_SIZE_CELLS,
-    ((y + 0.5) / OVERVIEW_TEXTURE_SIZE) * MAP_SIZE_CELLS,
+    MAP_SIZE_CELLS - ((y + 0.5) / OVERVIEW_TEXTURE_SIZE) * MAP_SIZE_CELLS,
   ])
 }

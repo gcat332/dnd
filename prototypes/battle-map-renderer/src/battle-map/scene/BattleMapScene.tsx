@@ -55,8 +55,13 @@ export function BattleMapScene() {
 
   return (
     <>
-      <ambientLight intensity={1.25} />
-      <directionalLight position={[78, 130, 52]} intensity={2.15} castShadow />
+      <ambientLight name="ambient-map-light" intensity={1.25} />
+      <directionalLight
+        name="directional-map-light"
+        position={[78, 130, 52]}
+        intensity={2.15}
+        castShadow
+      />
       <MapSurface mode={mode} visibleChunks={visibleChunks} />
       <ProceduralGrid />
       <DimensionalTerrain />
