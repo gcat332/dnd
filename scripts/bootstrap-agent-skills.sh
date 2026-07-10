@@ -3,22 +3,28 @@ set -euo pipefail
 
 usage() {
   cat <<'EOF'
-Usage: scripts/bootstrap-agent-skills.sh [--copy] [--force] [--check-only]
+Usage: scripts/bootstrap-agent-skills.sh [--copy] [--force] [--check-only] [--target TARGET]
 
-Installs this repo's bundled agent skills into $CODEX_HOME/skills, or
-~/.codex/skills when CODEX_HOME is unset.
+Installs this repo's bundled agent skills into the local skill directories of
+the AI runtimes you use. By default it installs into BOTH Claude Code and Codex.
+
+Target directories:
+  Claude Code:  $CLAUDE_HOME/skills, or ~/.claude/skills when CLAUDE_HOME is unset
+  Codex:        $CODEX_HOME/skills,  or ~/.codex/skills  when CODEX_HOME is unset
 
 Options:
-  --copy        Copy skill directories instead of symlinking them.
-  --force       Replace an existing bundled skill destination.
-  --check-only  Do not install; only report bundled and installed skill status.
-  -h, --help    Show this help.
+  --target TARGET  Where to install: claude, codex, or both (default: both).
+  --copy           Copy skill directories instead of symlinking them.
+  --force          Replace an existing bundled skill destination.
+  --check-only     Do not install; only report bundled and installed skill status.
+  -h, --help       Show this help.
 EOF
 }
 
 MODE="symlink"
 FORCE="false"
 CHECK_ONLY="false"
+TARGET="both"
 
 while [ "$#" -gt 0 ]; do
   case "$1" in
@@ -30,6 +36,13 @@ while [ "$#" -gt 0 ]; do
       ;;
     --check-only)
       CHECK_ONLY="true"
+      ;;
+    --target)
+      shift
+      TARGET="${1:-}"
+      ;;
+    --target=*)
+      TARGET="${1#--target=}"
       ;;
     -h|--help)
       usage
@@ -44,11 +57,27 @@ while [ "$#" -gt 0 ]; do
   shift
 done
 
+case "$TARGET" in
+  claude|codex|both) ;;
+  *)
+    echo "Invalid --target: $TARGET (expected claude, codex, or both)" >&2
+    exit 2
+    ;;
+esac
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd -P)"
 SOURCE_DIR="$REPO_ROOT/skills"
-CODEX_HOME="${CODEX_HOME:-$HOME/.codex}"
-DEST_DIR="$CODEX_HOME/skills"
+
+CLAUDE_DEST="${CLAUDE_HOME:-$HOME/.claude}/skills"
+CODEX_DEST="${CODEX_HOME:-$HOME/.codex}/skills"
+
+DEST_DIRS=()
+case "$TARGET" in
+  claude) DEST_DIRS=("$CLAUDE_DEST") ;;
+  codex)  DEST_DIRS=("$CODEX_DEST") ;;
+  both)   DEST_DIRS=("$CLAUDE_DEST" "$CODEX_DEST") ;;
+esac
 
 REQUIRED_SKILLS=(
   "dnd-project-dev"
@@ -80,6 +109,11 @@ OPTIONAL_SKILLS=(
   "post-mortem"
   "ubiquitous-language"
   "using-git-worktrees"
+  "ux-design"
+  "ux-review"
+  "feature-design"
+  "design-review"
+  "quick-design"
 )
 
 find_bundled_skill_dir() {
@@ -93,9 +127,13 @@ find_bundled_skill_dir() {
 
 has_skill() {
   local skill="$1"
-  [ -f "$DEST_DIR/$skill/SKILL.md" ] ||
-    [ -f "$HOME/.agents/skills/$skill/SKILL.md" ] ||
-    [ -n "$(find_bundled_skill_dir "$skill")" ]
+  local dest
+  for dest in "${DEST_DIRS[@]}"; do
+    [ -f "$dest/$skill/SKILL.md" ] && return 0
+  done
+  [ -f "$HOME/.agents/skills/$skill/SKILL.md" ] && return 0
+  [ -n "$(find_bundled_skill_dir "$skill")" ] && return 0
+  return 1
 }
 
 print_skill_status() {
@@ -117,7 +155,10 @@ print_skill_status() {
 }
 
 echo "Repo: $REPO_ROOT"
-echo "Codex skills dir: $DEST_DIR"
+echo "Target: $TARGET"
+for dest in "${DEST_DIRS[@]}"; do
+  echo "  skills dir: $dest"
+done
 echo
 
 if [ ! -d "$SOURCE_DIR" ]; then
@@ -134,32 +175,36 @@ if [ "$CHECK_ONLY" = "true" ]; then
   exit 0
 fi
 
-mkdir -p "$DEST_DIR"
+for dest in "${DEST_DIRS[@]}"; do
+  mkdir -p "$dest"
+done
 
 found_local="false"
 while IFS= read -r skill_file; do
   [ -n "$skill_file" ] || continue
   skill_dir="$(dirname "$skill_file")"
-
   found_local="true"
   skill_name="$(basename "$skill_dir")"
-  dest="$DEST_DIR/$skill_name"
 
-  if [ -e "$dest" ] || [ -L "$dest" ]; then
-    if [ "$FORCE" != "true" ] && [ -e "$dest" ]; then
-      echo "skip    $skill_name already exists at $dest"
-      continue
+  for dest_root in "${DEST_DIRS[@]}"; do
+    dest="$dest_root/$skill_name"
+
+    if [ -e "$dest" ] || [ -L "$dest" ]; then
+      if [ "$FORCE" != "true" ] && [ -e "$dest" ]; then
+        echo "skip    $skill_name already exists at $dest"
+        continue
+      fi
+      rm -rf "$dest"
     fi
-    rm -rf "$dest"
-  fi
 
-  if [ "$MODE" = "copy" ]; then
-    cp -R "$skill_dir" "$dest"
-    echo "copy    $skill_name -> $dest"
-  else
-    ln -s "$skill_dir" "$dest"
-    echo "symlink $skill_name -> $dest"
-  fi
+    if [ "$MODE" = "copy" ]; then
+      cp -R "$skill_dir" "$dest"
+      echo "copy    $skill_name -> $dest"
+    else
+      ln -s "$skill_dir" "$dest"
+      echo "symlink $skill_name -> $dest"
+    fi
+  done
 done < <(find "$SOURCE_DIR" -mindepth 2 -name SKILL.md -print | sort)
 
 if [ "$found_local" != "true" ]; then

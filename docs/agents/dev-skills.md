@@ -37,8 +37,18 @@ Project and vendored skills can be installed with:
 ## Frontend and experience
 
 - `prototype`: Use for rough flows before committing to UI structure.
+- `ux-design`: Use to author a UX spec for a specific screen, flow, or the persistent app chrome (map view, character sheet, DM/player views, dice tray, session log). Writes to `docs/design/ux/`.
+- `ux-review`: Use to validate a UX spec for completeness, accessibility, and implementation readiness before building the screen.
 - `figma:figma-generate-design` / `figma:figma-use`: Use only when pushing designs into Figma or working from a Figma file.
 - Apply the frontend guidance in the agent instructions: build the actual app experience first, keep operational tools dense and usable, and verify responsive layouts.
+
+## Feature and rules design
+
+- `feature-design`: Use to author a structured design doc for one feature or rules system (movement, line-of-sight, concentration, initiative, a content editor) with formulas, edge cases, tuning knobs, and acceptance criteria. Writes to `docs/design/features/`. This is the heavyweight path.
+- `quick-design`: Use for a small change — a tuning value, a minor tweak, or a small self-contained feature — where a full `feature-design` doc is overkill. Writes to `docs/design/quick-specs/`.
+- `design-review`: Use before handing a feature/design doc to implementation to check completeness, consistency, and implementability. Prefer running it in a fresh session so the reviewer is independent of the authoring context.
+
+These five (`ux-design`, `ux-review`, `feature-design`, `quick-design`, `design-review`) are vendored under `skills/vendor/game-studios` and adapted to be AI-agnostic; they are optional and installed by the bootstrap script.
 
 ## GitHub and delivery
 

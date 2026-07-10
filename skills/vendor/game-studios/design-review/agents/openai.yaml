@@ -1,0 +1,3 @@
+interface:
+  display_name: "Design Review"
+  short_description: "Review a design doc for completeness, consistency, and implementability"

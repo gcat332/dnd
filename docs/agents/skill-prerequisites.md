@@ -1,12 +1,13 @@
 # Skill Prerequisites
 
-This repo documents the skill workflow and vendors the core project skills needed to continue planning and development. A person who pulls the repo can install those bundled skills into their local Codex skill directory with the bootstrap script.
+This repo documents the skill workflow and vendors the core project skills needed to continue planning and development. A person who pulls the repo can install those bundled skills into their local AI runtime skill directories with the bootstrap script.
 
 The repo includes:
 
 - `skills/project/*`: DnD project-specific skills.
 - `skills/vendor/agents/*`: vendored planning and development skills.
 - `skills/vendor/superpowers/*`: vendored superpowers workflow skills used by this repo.
+- `skills/vendor/game-studios/*`: vendored UX/design skills (adapted from `donchitos/claude-code-game-studios` to be AI-agnostic).
 
 Install them explicitly after pulling:
 
@@ -14,7 +15,7 @@ Install them explicitly after pulling:
 ./scripts/bootstrap-agent-skills.sh
 ```
 
-This creates symlinks in `$CODEX_HOME/skills`, or `~/.codex/skills` when `CODEX_HOME` is unset. Use `--copy` if symlinks are not desired.
+By default this installs into **both** Claude Code (`$CLAUDE_HOME/skills`, or `~/.claude/skills` when `CLAUDE_HOME` is unset) and Codex (`$CODEX_HOME/skills`, or `~/.codex/skills` when `CODEX_HOME` is unset), using symlinks. Restrict to one runtime with `--target claude` or `--target codex`. Use `--copy` if symlinks are not desired.
 
 Agent instruction files (`AGENTS.md` and `CLAUDE.md`) tell agents to run this bootstrap script at the start of work in a fresh checkout when required skills are missing. This is intentionally explicit rather than a hidden `git pull` side effect.
 
@@ -70,6 +71,16 @@ These support issue reads/writes, Wayfinder map/tickets, commits, pushes, PRs, C
 - `openai-developers:openai-api-troubleshooting`
 
 Use these before implementing, configuring, running, or debugging OpenAI API-backed campaign or ability generation.
+
+## Optional UX and design skills
+
+Vendored under `skills/vendor/game-studios` and installed by the bootstrap script. Use them once UI and rules-feature design work begins:
+
+- `ux-design`: author a UX spec for a screen, flow, or app chrome.
+- `ux-review`: validate a UX spec before implementation.
+- `feature-design`: author a structured design doc for a feature or rules system.
+- `quick-design`: lightweight design spec for a small change.
+- `design-review`: review a feature/design doc before implementation.
 
 ## Optional later
 

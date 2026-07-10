@@ -1,0 +1,3 @@
+interface:
+  display_name: "Feature Design"
+  short_description: "Author a structured feature/rules design doc, section by section"

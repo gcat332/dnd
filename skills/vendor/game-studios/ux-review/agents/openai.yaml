@@ -1,0 +1,3 @@
+interface:
+  display_name: "UX Review"
+  short_description: "Validate a UX spec for completeness, accessibility, and readiness"

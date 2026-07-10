@@ -12,7 +12,7 @@ After pulling the repo, install the bundled agent skills with:
 ./scripts/bootstrap-agent-skills.sh
 ```
 
-Run `./scripts/bootstrap-agent-skills.sh --check-only` to inspect available skills without installing anything.
+By default this installs into both Claude Code (`~/.claude/skills`) and Codex (`~/.codex/skills`); pass `--target claude` or `--target codex` to install for one runtime only. Run `./scripts/bootstrap-agent-skills.sh --check-only` to inspect available skills without installing anything.
 
 ## Product Direction
 
