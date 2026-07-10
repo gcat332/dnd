@@ -2,6 +2,8 @@
 
 This repo is a large browser tabletop project with realtime collaboration, rules automation, content editing, and AI-assisted generation. Use these skills deliberately instead of improvising the workflow.
 
+For a fresh checkout, first verify the required skills/plugins in `docs/agents/skill-prerequisites.md`.
+
 ## Planning and product discovery
 
 - `wayfinder`: Use for the overall project map and large unclear chunks of work. One session should chart or resolve at most one Wayfinder ticket.

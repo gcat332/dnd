@@ -4,6 +4,8 @@ A browser-based virtual tabletop for playing DnD-style campaigns with friends on
 
 This repository is currently in the wayfinding/design stage. The domain language captured so far lives in [CONTEXT.md](./CONTEXT.md).
 
+Agent setup for continuing development lives in [AGENTS.md](./AGENTS.md), [CLAUDE.md](./CLAUDE.md), and [docs/agents](./docs/agents). A fresh machine still needs the required agent skills/plugins installed; see [docs/agents/skill-prerequisites.md](./docs/agents/skill-prerequisites.md).
+
 ## Product Direction
 
 The project is a remote-first tabletop, not a video meeting app. Players join live sessions through the browser, play together on a shared square-grid battle map, and return later to saved campaign and session state.
