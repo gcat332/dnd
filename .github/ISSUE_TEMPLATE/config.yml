@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Wayfinder map (planning)
+    url: https://github.com/gcat332/dnd/issues?q=is%3Aissue+label%3Awayfinder%3Amap
+    about: Planning and design tickets are tracked as Wayfinder maps/tickets. See docs/agents/issue-tracker.md.
+  - name: Domain glossary
+    url: https://github.com/gcat332/dnd/blob/main/CONTEXT.md
+    about: Read CONTEXT.md for the project's domain language before filing.

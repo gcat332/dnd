@@ -13,6 +13,17 @@ Issues, Wayfinder maps, and Wayfinder tickets for this repo live in GitHub Issue
 
 Infer the repo from `git remote -v`; `gh` does this automatically when run inside this clone.
 
+## Labels
+
+The canonical triage and Wayfinder labels are defined in `docs/agents/triage-labels.md` and the Wayfinding section below. To create or resync them on the repo (idempotent):
+
+```bash
+./scripts/setup-labels.sh          # apply to the current clone's repo
+./scripts/setup-labels.sh --dry-run
+```
+
+Issue templates for bugs and tasks live in `.github/ISSUE_TEMPLATE/` and apply `needs-triage` automatically.
+
 ## Pull requests as a triage surface
 
 **PRs as a request surface: no.**

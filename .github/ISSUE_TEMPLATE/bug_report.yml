@@ -1,0 +1,60 @@
+name: Bug report
+description: Something in the tabletop app behaves incorrectly.
+labels: ["bug", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. Use the domain terms from `CONTEXT.md` where you can.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What did you observe? Include any error text or a screenshot.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+      description: What should have happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. ...
+        2. ...
+        3. ...
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      description: Which part of the app?
+      options:
+        - Battle map / tokens
+        - Character sheet
+        - Rules automation
+        - Campaign / session persistence
+        - DM view / player view / permissions
+        - Dice / chat / session log
+        - Content editor
+        - AI generation
+        - Auth / Discord login
+        - Other / not sure
+    validations:
+      required: true
+  - type: dropdown
+    id: role
+    attributes:
+      label: Role at the table
+      options:
+        - Player
+        - DM
+        - Both / not applicable
+    validations:
+      required: false

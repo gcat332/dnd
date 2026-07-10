@@ -55,6 +55,14 @@ Relevant reference:
 
 - [D&D Beyond System Reference Document](https://www.dndbeyond.com/srd)
 
+## License
+
+This project is dual-licensed:
+
+- **Software** (source, scripts, tooling) — MIT, see [LICENSE](./LICENSE).
+- **Game content** (rules, monsters, items, spells, and other SRD-derived or
+  original campaign material) — CC-BY-4.0, see [LICENSE-CONTENT.md](./LICENSE-CONTENT.md).
+
 ## Current Status
 
 This is not implemented yet. The current repository contains the initial project README and domain glossary so the next step can create a Wayfinder map, tickets, and implementation plan without losing the product decisions already made.
