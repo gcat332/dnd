@@ -1,17 +1,28 @@
 import { render, screen } from '@testing-library/react'
 import { RouterProvider, createMemoryRouter } from 'react-router'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { routeConfig } from './router'
+
+vi.mock('./lib/supabaseClient', () => ({
+  supabase: {
+    auth: {
+      getSession: vi.fn().mockResolvedValue({
+        data: { session: { user: { id: 'user-1' } } },
+      }),
+      onAuthStateChange: vi.fn(() => ({ data: { subscription: { unsubscribe: vi.fn() } } })),
+    },
+  },
+}))
 
 describe('routeConfig', () => {
   it('renders the login route at /login', async () => {
     const router = createMemoryRouter(routeConfig, { initialEntries: ['/login'] })
     render(<RouterProvider router={router} />)
 
-    expect(await screen.findByText(/sign in/i)).toBeInTheDocument()
+    expect(await screen.findByText(/sign in with discord/i)).toBeInTheDocument()
   })
 
-  it('renders the campaign list route at /campaigns', async () => {
+  it('renders the campaign list route at /campaigns when signed in', async () => {
     const router = createMemoryRouter(routeConfig, { initialEntries: ['/campaigns'] })
     render(<RouterProvider router={router} />)
 
