@@ -28,6 +28,10 @@ _Avoid_: Campaign, room
 A saved state for a specific session, allowing that live gathering to be paused, resumed, or reviewed later.
 _Avoid_: Autosave only, campaign save
 
+**Checkpoint**:
+A DM-triggered, named save point capturing a campaign's live state at that moment, restorable on demand. Distinct from normal session resume, which always reflects the current state rather than a saved point in the past.
+_Avoid_: Autosave, undo history, automatic snapshot
+
 **Automatic Campaign Commit**:
 The rule that meaningful session changes are saved back into the campaign without requiring a manual DM confirmation step.
 _Avoid_: Manual commit, end-session approval

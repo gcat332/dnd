@@ -59,3 +59,12 @@ When you start a task: add an entry with what you're touching (issue #, files, b
 **Status**: done. Decisions: V1 automates grid movement/range, targeting, area effects, resistance/vulnerability, conditions, combat timing; line of sight and concentration deferred. Enforcement Preset (Strict/Balanced/Narrative) sets Hard/Warn/Advisory per rule category at campaign creation, DM overrides per category after. Hard = reject outright, no in-context override; Warn = DM-only confirm dialog, always logs `rule_warning` (+`override` if allowed); Advisory = passive hint, unlogged.
 **Touched**: issue #6 (resolution comment + closed), issue #1 map (Decisions-so-far, standing decisions, ticket checkbox, graduated fog, new Out-of-scope line for LOS/concentration), `CONTEXT.md` (added `Enforcement Preset`). Committed on `main`.
 **Handoff**: two tickets left — #8 "Design AI-assisted campaign and ability generation" (fully unblocked) and #9 "Design realtime session state and autosave" (fully unblocked). Either can go next; no more dependency ordering constraints between them.
+
+---
+
+## 2026-07-11 — Claude Code (7)
+
+**Task**: GitHub #9 "Design realtime session state and autosave" (Wayfinder ticket, child of map #1, `wayfinder:grilling`)
+**Status**: done. Most of the question was already answered by #2/#3/#4 (state ownership, event flow, save cadence, restore semantics). New decisions: Token writes are ownership-gated (owner/DM only via RLS) to prevent simultaneous-edit conflicts; a manual single-named Checkpoint (DM-triggered, not automatic/versioned) is the only point-in-time rollback in V1, distinct from normal always-current resume; dice rolls are hybrid (Edge Function rolls server-side as source of truth, client plays a cosmetic animation landing on that value).
+**Touched**: issue #9 (resolution comment + closed), issue #1 map (Decisions-so-far, standing decisions, ticket checkbox, graduated fog), `CONTEXT.md` (added `Checkpoint`, explicitly distinguished from Session Save). Committed on `main`.
+**Handoff**: one ticket left — **#8 "Design AI-assisted campaign and ability generation"**, fully unblocked. Once it closes, the entire Wayfinder map (issue #1) is done — "way to the destination is clear," ready to move from planning into an actual build plan.
