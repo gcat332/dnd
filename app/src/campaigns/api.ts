@@ -20,3 +20,11 @@ export async function listMyCampaigns(): Promise<Campaign[]> {
   if (error) throw new Error(error.message)
   return (data ?? []) as Campaign[]
 }
+
+export async function createInvitation(campaignId: string): Promise<{ code: string }> {
+  const { data, error } = await supabase.rpc('create_campaign_invitation', {
+    p_campaign_id: campaignId,
+  })
+  if (error) throw new Error(error.message)
+  return { code: (data as { code: string }).code }
+}

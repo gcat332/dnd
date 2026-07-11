@@ -8,7 +8,7 @@ vi.mock('../lib/supabaseClient', () => ({
 }))
 
 import { supabase } from '../lib/supabaseClient'
-import { createCampaign, listMyCampaigns } from './api'
+import { createCampaign, createInvitation, listMyCampaigns } from './api'
 
 describe('createCampaign', () => {
   it('calls the create_campaign RPC and returns the campaign', async () => {
@@ -43,5 +43,21 @@ describe('listMyCampaigns', () => {
     expect(supabase.from).toHaveBeenCalledWith('campaigns')
     expect(select).toHaveBeenCalledWith('*')
     expect(result).toEqual(fakeCampaigns)
+  })
+})
+
+describe('createInvitation', () => {
+  it('calls the create_campaign_invitation RPC and returns the code', async () => {
+    vi.mocked(supabase.rpc).mockResolvedValue({
+      data: { id: 'i1', campaign_id: 'c1', code: 'ABCD1234' },
+      error: null,
+    } as never)
+
+    const result = await createInvitation('c1')
+
+    expect(supabase.rpc).toHaveBeenCalledWith('create_campaign_invitation', {
+      p_campaign_id: 'c1',
+    })
+    expect(result).toEqual({ code: 'ABCD1234' })
   })
 })
