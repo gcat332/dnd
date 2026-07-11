@@ -82,7 +82,7 @@ const DEFAULT_QUALITY: SceneQualitySettings = {
   shadowMapSize: 2048,
   softShadows: true,
   particleScale: 1,
-  postProcessing: true,
+  outputProcessing: true,
 }
 
 function StressEffect({ particleScale }: Readonly<{ particleScale: number }>) {

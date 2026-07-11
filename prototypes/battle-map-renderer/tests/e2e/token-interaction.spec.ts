@@ -10,8 +10,8 @@ async function locateFixtureToken(canvas: Locator): Promise<ScreenPoint> {
   const centerX = image.width / 2
   const centerY = image.height / 2
 
-  for (let y = Math.floor(centerY - 100); y <= Math.ceil(centerY + 100); y += 1) {
-    for (let x = Math.floor(centerX - 100); x <= Math.ceil(centerX + 100); x += 1) {
+  for (let y = Math.floor(centerY - 180); y <= Math.ceil(centerY + 180); y += 1) {
+    for (let x = Math.floor(centerX - 180); x <= Math.ceil(centerX + 180); x += 1) {
       const index = (y * image.width + x) * 4
       const red = image.data[index]!
       const green = image.data[index + 1]!
@@ -34,14 +34,21 @@ test('previews a snapped Token drag and emits one MoveIntent on release', async 
   const diagnostics = page.getByTestId('token-interaction-diagnostics')
   await expect(diagnostics).toHaveAttribute('data-move-intents', '[]')
   const canvas = page.getByTestId('battle-map-canvas')
+  const canvasBox = await canvas.boundingBox()
+  expect(canvasBox).not.toBeNull()
+  await page.mouse.move(canvasBox!.x + canvasBox!.width / 2, canvasBox!.y + canvasBox!.height / 2)
   for (let step = 0; step < 10; step += 1) await page.mouse.wheel(0, -1_000)
   await expect(page.getByTestId('chunk-diagnostics')).toHaveAttribute('data-mode', 'detail')
 
   const from = await locateFixtureToken(canvas)
-  await page.mouse.move(from.x, from.y)
+  const encodedPoint = await page.getByTestId('scene-performance-diagnostics').getAttribute(
+    'data-interaction-token-point',
+  )
+  const projected = JSON.parse(encodedPoint ?? '') as ScreenPoint
+  await page.mouse.move(canvasBox!.x + projected.x, canvasBox!.y + projected.y)
   await page.mouse.down()
   await expect(diagnostics).toHaveAttribute('data-drag-preview', '')
-  await page.mouse.move(from.x + 108, from.y, { steps: 4 })
+  await page.mouse.move(canvasBox!.x + projected.x + 108, canvasBox!.y + projected.y, { steps: 4 })
 
   await expect(diagnostics).toHaveAttribute(
     'data-drag-preview',

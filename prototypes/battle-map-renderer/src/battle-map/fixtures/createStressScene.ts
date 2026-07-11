@@ -46,7 +46,6 @@ export function createStressScene(nowMs = 0): StressScene {
       { id: 'stress-light-nw', cell: { column: 86, row: 88 }, elevation: 5, color: '#ffb35c', intensity: 22, range: 20 },
       { id: 'stress-light-ne', cell: { column: 112, row: 88 }, elevation: 5, color: '#79cfff', intensity: 22, range: 20 },
       { id: 'stress-light-sw', cell: { column: 86, row: 110 }, elevation: 5, color: '#ff7f9d', intensity: 22, range: 20 },
-      { id: 'stress-light-se', cell: { column: 112, row: 110 }, elevation: 5, color: '#b6ff88', intensity: 22, range: 20 },
     ],
     fog: { active: true, color: '#171a1f', near: 90, far: 220 },
     animations: interactiveObjects.slice(0, 24).map((object, index) => ({

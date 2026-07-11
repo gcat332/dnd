@@ -1,5 +1,5 @@
 import { MapControls } from '@react-three/drei'
-import { Canvas, useThree } from '@react-three/fiber'
+import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Vector3 } from 'three'
 import type { MapControls as MapControlsImpl } from 'three-stdlib'
@@ -30,6 +30,8 @@ import { WebGLContextBoundary } from './performance/WebGLContextBoundary'
 type BattleMapCameraProps = {
   onReady: () => void
   onVisibilityProbePoints: (points: VisibilityProbePoints) => void
+  onStressTokenPoint: (point: ScreenPoint | null) => void
+  stressTokenCell: GridCell | null
   interactionsEnabled: boolean
 }
 
@@ -175,16 +177,19 @@ function fixtureViewer(): Viewer {
 function BattleMapCamera({
   onReady,
   onVisibilityProbePoints,
+  onStressTokenPoint,
+  stressTokenCell,
   interactionsEnabled,
 }: BattleMapCameraProps) {
   const controls = useRef<MapControlsImpl>(null)
+  const warmupFrame = useRef(0)
   const camera = useThree((state) => state.camera)
   const size = useThree((state) => state.size)
   const invalidate = useThree((state) => state.invalidate)
   const setCamera = useBattleMapView((state) => state.setCamera)
   const dragPreview = useBattleMapView((state) => state.dragPreview)
 
-  const syncViewState = useCallback(() => {
+  const syncViewState = useCallback((publishProbePoints = true) => {
     const target = controls.current?.target
     const visibleCellSpan = Math.max(size.width, size.height) / camera.zoom
     setCamera(
@@ -200,18 +205,33 @@ function BattleMapCamera({
         y: ((1 - point.y) / 2) * size.height,
       }
     }
-    onVisibilityProbePoints({
-      visible: projectCell(VISIBILITY_PROBE_CELLS.visible),
-      explored: projectCell(VISIBILITY_PROBE_CELLS.explored),
-      hidden: projectCell(VISIBILITY_PROBE_CELLS.hidden),
-    })
+    if (publishProbePoints) {
+      onVisibilityProbePoints({
+        visible: projectCell(VISIBILITY_PROBE_CELLS.visible),
+        explored: projectCell(VISIBILITY_PROBE_CELLS.explored),
+        hidden: projectCell(VISIBILITY_PROBE_CELLS.hidden),
+      })
+      onStressTokenPoint(stressTokenCell ? projectCell(stressTokenCell) : null)
+    }
     invalidate()
-  }, [camera, invalidate, onVisibilityProbePoints, setCamera, size.height, size.width])
+  }, [camera, invalidate, onStressTokenPoint, onVisibilityProbePoints, setCamera, size.height, size.width, stressTokenCell])
 
   useEffect(() => {
-    syncViewState()
-    onReady()
-  }, [onReady, syncViewState])
+    syncViewState(false)
+    warmupFrame.current = 0
+    invalidate()
+  }, [invalidate, syncViewState])
+
+  useFrame(() => {
+    if (warmupFrame.current >= 2) return
+    warmupFrame.current += 1
+    if (warmupFrame.current === 2) {
+      syncViewState()
+      onReady()
+      return
+    }
+    invalidate()
+  })
 
   return (
     <MapControls
@@ -224,7 +244,7 @@ function BattleMapCamera({
       maxZoom={36}
       zoomSpeed={24}
       screenSpacePanning={false}
-      onChange={syncViewState}
+      onChange={() => syncViewState()}
     />
   )
 }
@@ -324,7 +344,18 @@ const EMPTY_METRICS: SceneMetrics = {
   textures: 0,
   dpr: 1,
   p95ChunkLatencyMs: 0,
-  p95InputLatencyMs: 0,
+  p95PointerToRenderedFrameLatencyMs: 0,
+  sceneResourceBytes: 0,
+  rendererState: {
+    dpr: 1,
+    shadowEnabled: false,
+    shadowType: 'other',
+    softShadows: false,
+    shadowCastingLights: 0,
+    shadowMapSizes: [],
+    particleCount: 0,
+    toneMapping: 'other',
+  },
   frameSamples: 0,
 }
 const IGNORE_METRICS = () => undefined
@@ -359,6 +390,7 @@ export function BattleMapCanvas() {
   const [moveIntents, setMoveIntents] = useState<readonly MoveIntent[]>([])
   const [movingLightCell, setMovingLightCell] = useState<GridCell>({ column: 101, row: 100 })
   const [probePoints, setProbePoints] = useState<VisibilityProbePoints | null>(null)
+  const [stressTokenPoint, setStressTokenPoint] = useState<ScreenPoint | null>(null)
   const [templateKind, setTemplateKind] = useState<TemplateKind>('circle')
   const [remoteTokenAnimations, setRemoteTokenAnimations] = useState<readonly RemoteTokenAnimation[]>(
     () => (stressMode ? stressScene.animations : []),
@@ -405,16 +437,31 @@ export function BattleMapCanvas() {
     )
   }, [])
   const recordAnimatedTokenPoint = useCallback((_tokenId: string, point: WorldPoint) => {
+    if (stressMode) return
     setAnimationDiagnostics((current) => ({
       point,
       sampleCount: current.sampleCount + 1,
     }))
-  }, [])
+  }, [stressMode])
   const completeRemoteTokenAnimation = useCallback((completed: RemoteTokenAnimation) => {
-    setRemoteTokenAnimations((current) =>
-      removeCompletedRemoteTokenAnimation(current, completed),
-    )
-  }, [])
+    if (!stressMode) {
+      setRemoteTokenAnimations((current) =>
+        removeCompletedRemoteTokenAnimation(current, completed),
+      )
+      return
+    }
+    const replacement: RemoteTokenAnimation = {
+      tokenId: completed.tokenId,
+      from: completed.from,
+      to: completed.to,
+      eventStartMs: Date.now(),
+      durationMs: completed.durationMs,
+    }
+    setRemoteTokenAnimations((current) => [
+      ...removeCompletedRemoteTokenAnimation(current, completed),
+      replacement,
+    ])
+  }, [stressMode])
   const loseContext = useCallback(() => setContextLost(true), [])
   const restoreContext = useCallback(() => setContextLost(false), [])
   const retryRenderer = useCallback(() => {
@@ -444,6 +491,10 @@ export function BattleMapCanvas() {
         },
       ]
   const qualitySettings = QUALITY_SETTINGS[quality]
+  const interactionTokenCell =
+    stressMode
+      ? tokens.find((token) => token.id === 'stress-object-050')?.cell ?? null
+      : tokens.find((token) => token.id === 'fixture-token')?.cell ?? null
 
   useEffect(() => {
     window.addEventListener('battle-map:move-light', moveFixtureLight)
@@ -460,7 +511,22 @@ export function BattleMapCanvas() {
 
   return (
     <div className="battle-map-shell">
-      <Canvas
+      <div className="map-toolbar-band">
+        <div className="map-tool-controls" role="toolbar" aria-label="Map effects">
+          {(['circle', 'cone', 'line'] as const).map((kind) => (
+            <button
+              key={kind}
+              type="button"
+              aria-pressed={templateKind === kind}
+              onClick={() => setTemplateKind(kind)}
+            >
+              {kind[0]!.toUpperCase() + kind.slice(1)}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="battle-map-viewport">
+        <Canvas
         key={rendererGeneration}
         data-testid="battle-map-canvas"
         className={contextLost ? 'battle-map-canvas-paused' : undefined}
@@ -485,12 +551,15 @@ export function BattleMapCanvas() {
         <WebGLContextBoundary onLost={loseContext} onRestored={restoreContext} />
         <ScenePerformanceMonitor
           quality={quality}
+          settings={qualitySettings}
           onQualityChange={setQuality}
           onMetrics={stressMode ? setMetrics : IGNORE_METRICS}
         />
         <BattleMapCamera
           onReady={markCameraReady}
           onVisibilityProbePoints={recordVisibilityProbePoints}
+          onStressTokenPoint={setStressTokenPoint}
+          stressTokenCell={interactionTokenCell}
           interactionsEnabled={!contextLost}
         />
         <BattleMapScene
@@ -506,25 +575,14 @@ export function BattleMapCanvas() {
           stressWalls={stressMode ? stressScene.walls : []}
           stressEffects={stressMode}
         />
-      </Canvas>
-      <div className="map-tool-controls" role="toolbar" aria-label="Map effects">
-        {(['circle', 'cone', 'line'] as const).map((kind) => (
-          <button
-            key={kind}
-            type="button"
-            aria-pressed={templateKind === kind}
-            onClick={() => setTemplateKind(kind)}
-          >
-            {kind[0]!.toUpperCase() + kind.slice(1)}
-          </button>
-        ))}
+        </Canvas>
+        {contextLost ? (
+          <section className="webgl-recovery" data-testid="webgl-recovery" role="alert">
+            <strong>Map renderer paused</strong>
+            <button type="button" onClick={retryRenderer}>Retry renderer</button>
+          </section>
+        ) : null}
       </div>
-      {contextLost ? (
-        <section className="webgl-recovery" data-testid="webgl-recovery" role="alert">
-          <strong>Map renderer paused</strong>
-          <button type="button" onClick={retryRenderer}>Retry renderer</button>
-        </section>
-      ) : null}
       <ChunkDiagnostics cameraReady={cameraReady} />
       <TokenInteractionDiagnostics moveIntents={moveIntents} />
       <VisibilityDiagnostics
@@ -548,10 +606,14 @@ export function BattleMapCanvas() {
         data-shadow-map-size={qualitySettings.shadowMapSize}
         data-soft-shadows={qualitySettings.softShadows}
         data-particle-scale={qualitySettings.particleScale}
-        data-post-processing={qualitySettings.postProcessing}
+        data-output-processing={qualitySettings.outputProcessing}
         data-object-count={tokens.length}
         data-token-checksum={tokenChecksum(tokens)}
+        data-interaction-token-point={stressTokenPoint ? JSON.stringify(stressTokenPoint) : ''}
+        data-stress-token-point={stressMode && stressTokenPoint ? JSON.stringify(stressTokenPoint) : ''}
+        data-renderer-generation={rendererGeneration}
         data-frame-samples={metrics.frameSamples}
+        data-renderer-state={JSON.stringify(metrics.rendererState)}
         data-metrics={JSON.stringify(metrics)}
       />
     </div>

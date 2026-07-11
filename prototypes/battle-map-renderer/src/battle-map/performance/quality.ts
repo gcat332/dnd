@@ -5,8 +5,31 @@ export type SceneQualitySettings = Readonly<{
   shadowMapSize: 2048 | 1024 | 512
   softShadows: boolean
   particleScale: 1 | 0.5 | 0.25
-  postProcessing: boolean
+  outputProcessing: boolean
 }>
+
+export type QualityTransition = Readonly<{
+  quality: SceneQuality
+  candidate: SceneQuality | null
+  consecutiveWindows: number
+}>
+
+export function nextQualityTransition(
+  currentQuality: SceneQuality,
+  current: Pick<QualityTransition, 'candidate' | 'consecutiveWindows'>,
+  candidate: SceneQuality,
+): QualityTransition {
+  if (candidate === currentQuality) {
+    return { quality: currentQuality, candidate: null, consecutiveWindows: 0 }
+  }
+  if (candidate !== current.candidate) {
+    return { quality: currentQuality, candidate, consecutiveWindows: 1 }
+  }
+  if (current.consecutiveWindows >= 1) {
+    return { quality: candidate, candidate: null, consecutiveWindows: 0 }
+  }
+  return { quality: currentQuality, candidate, consecutiveWindows: 1 }
+}
 
 export type FrameTimeSample = Readonly<{
   recordedAtMs: number
@@ -39,20 +62,20 @@ export const QUALITY_SETTINGS: Readonly<Record<SceneQuality, SceneQualitySetting
     shadowMapSize: 2048,
     softShadows: true,
     particleScale: 1,
-    postProcessing: true,
+    outputProcessing: true,
   },
   medium: {
     maxDpr: 1.5,
     shadowMapSize: 1024,
     softShadows: true,
     particleScale: 0.5,
-    postProcessing: true,
+    outputProcessing: true,
   },
   low: {
     maxDpr: 1,
     shadowMapSize: 512,
     softShadows: false,
     particleScale: 0.25,
-    postProcessing: false,
+    outputProcessing: false,
   },
 }

@@ -90,6 +90,9 @@ test('switches from overview to detail without breaking the continuous grid', as
   expectRenderedMap(overviewFrame)
   await expect(canvas).toHaveScreenshot('overview-map.png', { maxDiffPixelRatio: 0.01 })
 
+  const canvasBox = await canvas.boundingBox()
+  expect(canvasBox).not.toBeNull()
+  await page.mouse.move(canvasBox!.x + canvasBox!.width / 2, canvasBox!.y + canvasBox!.height / 2)
   await page.mouse.wheel(0, -2400)
   await expect(diagnostics).toHaveAttribute('data-mode', 'detail')
 

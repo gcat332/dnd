@@ -19,6 +19,10 @@ async function openViewer(page: Page, viewer: 'dm' | 'player') {
 }
 
 async function enterDetailView(page: Page) {
+  const canvas = page.getByTestId('battle-map-canvas')
+  const canvasBox = await canvas.boundingBox()
+  expect(canvasBox).not.toBeNull()
+  await page.mouse.move(canvasBox!.x + canvasBox!.width / 2, canvasBox!.y + canvasBox!.height / 2)
   await page.mouse.wheel(0, -2400)
   await expect(page.getByTestId('chunk-diagnostics')).toHaveAttribute('data-mode', 'detail')
 }
@@ -27,10 +31,14 @@ async function probeLuminance(canvas: Locator, diagnostics: Locator) {
   const encoded = await diagnostics.getAttribute('data-visibility-probe-points')
   const points = JSON.parse(encoded ?? '') as ProbePoints
   const frame = PNG.sync.read(await canvas.screenshot())
+  const bounds = await canvas.boundingBox()
+  expect(bounds).not.toBeNull()
+  const scaleX = frame.width / bounds!.width
+  const scaleY = frame.height / bounds!.height
 
   const luminanceAt = (point: ScreenPoint) => {
-    const x = Math.max(0, Math.min(frame.width - 1, Math.round(point.x)))
-    const y = Math.max(0, Math.min(frame.height - 1, Math.round(point.y)))
+    const x = Math.max(0, Math.min(frame.width - 1, Math.round(point.x * scaleX)))
+    const y = Math.max(0, Math.min(frame.height - 1, Math.round(point.y * scaleY)))
     const index = (y * frame.width + x) * 4
     return (frame.data[index]! + frame.data[index + 1]! + frame.data[index + 2]!) / 3
   }
@@ -48,6 +56,19 @@ function expectVisibilityBands(probes: Awaited<ReturnType<typeof probeLuminance>
   expect(probes.visible).toBeGreaterThan(probes.explored + 10)
 }
 
+async function waitForVisibilityBands(canvas: Locator, diagnostics: Locator) {
+  let probes: Awaited<ReturnType<typeof probeLuminance>> | null = null
+  await expect.poll(async () => {
+    probes = await probeLuminance(canvas, diagnostics)
+    return Math.min(
+      8 - probes.hidden,
+      probes.explored - probes.hidden - 5,
+      probes.visible - probes.explored - 10,
+    )
+  }).toBeGreaterThan(0)
+  expectVisibilityBands(probes!)
+}
+
 test('separates DM and Player visibility while lights remain renderer-only', async ({ page }) => {
   await openViewer(page, 'dm')
   const canvas = page.getByTestId('battle-map-canvas')
@@ -56,12 +77,12 @@ test('separates DM and Player visibility while lights remain renderer-only', asy
   const playerDiagnostics = await openViewer(page, 'player')
   await expect(playerDiagnostics).toHaveAttribute('data-visible-token-ids', 'fixture-token')
   await expect(page.getByTestId('chunk-diagnostics')).toHaveAttribute('data-mode', 'overview')
-  expectVisibilityBands(await probeLuminance(canvas, playerDiagnostics))
+  await waitForVisibilityBands(canvas, playerDiagnostics)
   const playerOverviewFrame = await canvas.screenshot()
   expect(playerOverviewFrame.equals(dmFrame)).toBe(false)
 
   await enterDetailView(page)
-  expectVisibilityBands(await probeLuminance(canvas, playerDiagnostics))
+  await waitForVisibilityBands(canvas, playerDiagnostics)
 
   const checksum = await playerDiagnostics.getAttribute('data-visibility-checksum')
   const lightCell = await playerDiagnostics.getAttribute('data-moving-light-cell')

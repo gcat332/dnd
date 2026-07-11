@@ -1,6 +1,6 @@
 import { useThree, type ThreeEvent } from '@react-three/fiber'
-import { useEffect, useRef } from 'react'
-import { CylinderGeometry, Plane, Vector3 } from 'three'
+import { useCallback, useEffect, useRef } from 'react'
+import { CylinderGeometry, Plane, Vector2, Vector3 } from 'three'
 import { gridToWorld, worldToGrid } from '../domain/grid'
 import { straightGridPath } from '../domain/movement'
 import type { MoveIntent, TokenRenderState } from '../domain/tokens'
@@ -43,6 +43,9 @@ function cellUnderPointer(event: ThreeEvent<PointerEvent>) {
 
 export function TokenMesh({ token, onMoveIntent }: TokenMeshProps) {
   const invalidate = useThree((state) => state.invalidate)
+  const camera = useThree((state) => state.camera)
+  const gl = useThree((state) => state.gl)
+  const raycaster = useThree((state) => state.raycaster)
   const selected = useBattleMapView((state) => state.selectedTokenId === token.id)
   const dragPreview = useBattleMapView((state) =>
     state.dragPreview?.tokenId === token.id ? state.dragPreview : null,
@@ -53,6 +56,70 @@ export function TokenMesh({ token, onMoveIntent }: TokenMeshProps) {
   const activePointer = useRef<ActivePointer | null>(null)
   const displayCell = dragPreview?.cell ?? token.cell
   const point = gridToWorld(displayCell)
+
+  const cellAtClientPoint = useCallback((clientX: number, clientY: number) => {
+    const bounds = gl.domElement.getBoundingClientRect()
+    const pointer = new Vector2(
+      ((clientX - bounds.left) / bounds.width) * 2 - 1,
+      -((clientY - bounds.top) / bounds.height) * 2 + 1,
+    )
+    raycaster.setFromCamera(pointer, camera)
+    const intersection = raycaster.ray.intersectPlane(DRAG_PLANE, DRAG_POINT)
+    if (!intersection) return null
+    try {
+      return worldToGrid({ x: intersection.x, z: intersection.z })
+    } catch (error) {
+      if (error instanceof RangeError) return null
+      throw error
+    }
+  }, [camera, gl, raycaster])
+
+  const finishPointer = useCallback((pointerId: number) => {
+    const active = activePointer.current
+    if (active?.pointerId !== pointerId) return
+    const preview = useBattleMapView.getState().dragPreview
+    const to = preview?.tokenId === token.id ? preview.cell : token.cell
+    activePointer.current = null
+    try {
+      active.target.releasePointerCapture(pointerId)
+    } catch {
+      // WebKit may release capture before its canvas-level pointerup fallback.
+    }
+    onMoveIntent({
+      tokenId: token.id,
+      from: token.cell,
+      to,
+      path: straightGridPath(token.cell, to),
+    })
+    clearDragPreview()
+    invalidate()
+  }, [clearDragPreview, invalidate, onMoveIntent, token.cell, token.id])
+
+  useEffect(() => {
+    const canvas = gl.domElement
+    const handleMove = (event: PointerEvent) => {
+      if (activePointer.current?.pointerId !== event.pointerId) return
+      const cell = cellAtClientPoint(event.clientX, event.clientY)
+      if (!cell) return
+      previewTokenMove(token.id, cell)
+      invalidate()
+    }
+    const handleUp = (event: PointerEvent) => finishPointer(event.pointerId)
+    const handleCancel = (event: PointerEvent) => {
+      if (activePointer.current?.pointerId !== event.pointerId) return
+      activePointer.current = null
+      clearDragPreview()
+      invalidate()
+    }
+    canvas.addEventListener('pointermove', handleMove)
+    canvas.addEventListener('pointerup', handleUp)
+    canvas.addEventListener('pointercancel', handleCancel)
+    return () => {
+      canvas.removeEventListener('pointermove', handleMove)
+      canvas.removeEventListener('pointerup', handleUp)
+      canvas.removeEventListener('pointercancel', handleCancel)
+    }
+  }, [cellAtClientPoint, clearDragPreview, finishPointer, gl, invalidate, previewTokenMove, token.id])
 
   useEffect(
     () => () => {
@@ -91,21 +158,9 @@ export function TokenMesh({ token, onMoveIntent }: TokenMeshProps) {
   }
 
   const handlePointerUp = (event: ThreeEvent<PointerEvent>) => {
-    const active = activePointer.current
-    if (active?.pointerId !== event.pointerId) return
+    if (activePointer.current?.pointerId !== event.pointerId) return
     stopMapInteraction(event)
-    const preview = useBattleMapView.getState().dragPreview
-    const to = preview?.tokenId === token.id ? preview.cell : token.cell
-    activePointer.current = null
-    active.target.releasePointerCapture(event.pointerId)
-    onMoveIntent({
-      tokenId: token.id,
-      from: token.cell,
-      to,
-      path: straightGridPath(token.cell, to),
-    })
-    clearDragPreview()
-    invalidate()
+    finishPointer(event.pointerId)
   }
 
   const handlePointerCancel = (event: ThreeEvent<PointerEvent>) => {

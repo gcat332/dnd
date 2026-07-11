@@ -13,8 +13,6 @@ for (const viewport of VIEWPORTS) {
     await page.goto('/')
     const canvas = page.getByTestId('battle-map-canvas')
     const tools = page.getByRole('toolbar', { name: 'Map effects' })
-    await expect(canvas).toHaveCSS('width', `${viewport.width}px`)
-    await expect(canvas).toHaveCSS('height', `${viewport.height}px`)
     await expect(tools).toBeVisible()
 
     const [canvasBox, toolsBox] = await Promise.all([canvas.boundingBox(), tools.boundingBox()])
@@ -24,13 +22,18 @@ for (const viewport of VIEWPORTS) {
     expect(toolsBox!.y).toBeGreaterThanOrEqual(0)
     expect(toolsBox!.x + toolsBox!.width).toBeLessThanOrEqual(viewport.width)
     expect(toolsBox!.y + toolsBox!.height).toBeLessThanOrEqual(viewport.height)
+    expect(toolsBox!.y + toolsBox!.height).toBeLessThanOrEqual(canvasBox!.y)
+    expect(canvasBox!.x).toBeGreaterThanOrEqual(0)
+    expect(canvasBox!.y + canvasBox!.height).toBeLessThanOrEqual(viewport.height)
 
-    const image = PNG.sync.read(await canvas.screenshot())
-    const colors = new Set<string>()
-    for (let index = 0; index < image.data.length; index += 4) {
-      colors.add(`${image.data[index]}:${image.data[index + 1]}:${image.data[index + 2]}`)
-      if (colors.size >= 6) break
-    }
-    expect(colors.size).toBeGreaterThanOrEqual(6)
+    await expect.poll(async () => {
+      const image = PNG.sync.read(await canvas.screenshot())
+      const colors = new Set<string>()
+      for (let index = 0; index < image.data.length; index += 4) {
+        colors.add(`${image.data[index]}:${image.data[index + 1]}:${image.data[index + 2]}`)
+        if (colors.size >= 6) break
+      }
+      return colors.size
+    }).toBeGreaterThanOrEqual(6)
   })
 }

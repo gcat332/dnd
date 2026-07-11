@@ -1,3 +1,4 @@
+import { useThree } from '@react-three/fiber'
 import { useEffect, useMemo } from 'react'
 import {
   DataTexture,
@@ -74,6 +75,7 @@ type VisibilitySurfaceProps = {
 }
 
 function VisibilitySurface({ name, bounds, grid, encodedGrid }: VisibilitySurfaceProps) {
+  const invalidate = useThree((state) => state.invalidate)
   const width = bounds.maxColumnExclusive - bounds.minColumn
   const depth = bounds.maxRowExclusive - bounds.minRow
   const texture = useMemo(() => {
@@ -92,7 +94,10 @@ function VisibilitySurface({ name, bounds, grid, encodedGrid }: VisibilitySurfac
     return resource
   }, [bounds.maxColumnExclusive, bounds.maxRowExclusive, bounds.minColumn, bounds.minRow, encodedGrid, grid])
 
-  useEffect(() => () => texture.dispose(), [texture])
+  useEffect(() => {
+    invalidate()
+    return () => texture.dispose()
+  }, [invalidate, texture])
 
   return (
     <mesh

@@ -10,7 +10,25 @@ body,
 }
 
 .battle-map-shell {
+  display: grid;
+  grid-template-rows: 56px minmax(0, 1fr);
+}
+
+.map-toolbar-band {
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  border-bottom: 1px solid #5d636c;
+  background: #1d2228;
+}
+
+.battle-map-viewport {
   position: relative;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .battle-map-canvas-paused {
@@ -18,13 +36,8 @@ body,
 }
 
 .map-tool-controls {
-  position: absolute;
-  top: 12px;
-  left: 50%;
-  z-index: 2;
   display: flex;
   max-width: calc(100% - 24px);
-  transform: translateX(-50%);
   border: 1px solid #5d636c;
   border-radius: 6px;
   overflow: hidden;

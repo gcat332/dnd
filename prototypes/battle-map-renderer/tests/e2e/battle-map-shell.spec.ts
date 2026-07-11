@@ -6,8 +6,13 @@ test('renders a nonblank, viewport-filling battle map', async ({ page }) => {
   await page.goto('/')
 
   const canvas = page.getByTestId('battle-map-canvas')
+  const toolbar = page.getByRole('toolbar', { name: 'Map effects' })
   await expect(canvas).toHaveCSS('width', '1280px')
-  await expect(canvas).toHaveCSS('height', '800px')
+  await expect(canvas).toHaveCSS('height', '744px')
+  const [canvasBox, toolbarBox] = await Promise.all([canvas.boundingBox(), toolbar.boundingBox()])
+  expect(canvasBox).not.toBeNull()
+  expect(toolbarBox).not.toBeNull()
+  expect(toolbarBox!.y + toolbarBox!.height).toBeLessThanOrEqual(canvasBox!.y)
 
   const image = PNG.sync.read(await canvas.screenshot())
   const colors = new Set<string>()
