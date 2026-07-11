@@ -3,6 +3,7 @@ import { useEffect, useMemo } from 'react'
 import type { ChunkAddress } from '../domain/chunks'
 import { MAP_SIZE_CELLS } from '../domain/grid'
 import type { MoveIntent, TokenRenderState } from '../domain/tokens'
+import type { VisibilityGrid } from '../domain/visibility'
 import {
   mapDetailMode,
   visibleChunkAddresses,
@@ -11,9 +12,11 @@ import {
 } from '../domain/viewport'
 import { useBattleMapView } from '../state/useBattleMapView'
 import { DimensionalTerrain } from './DimensionalTerrain'
+import { LightLayer, type VisualLight } from './LightLayer'
 import { chunkAddressKey, MapSurface } from './MapSurface'
 import { ProceduralGrid } from './ProceduralGrid'
 import { TokenLayer } from './TokenLayer'
+import { VisibilityLayer } from './VisibilityLayer'
 
 const CELL_TEXTURE_PIXELS = 64
 
@@ -49,14 +52,24 @@ export function useSceneSelection(): SceneSelection {
 type BattleMapSceneProps = {
   tokens?: readonly TokenRenderState[]
   onMoveIntent?: (intent: MoveIntent) => void
+  visibility?: VisibilityGrid
+  lights?: readonly VisualLight[]
 }
 
 const NO_TOKENS: readonly TokenRenderState[] = []
+const NO_LIGHTS: readonly VisualLight[] = []
+const ALL_VISIBLE: VisibilityGrid = {
+  width: MAP_SIZE_CELLS,
+  height: MAP_SIZE_CELLS,
+  cells: Array.from({ length: MAP_SIZE_CELLS * MAP_SIZE_CELLS }, () => 'visible'),
+}
 const IGNORE_MOVE_INTENT = () => undefined
 
 export function BattleMapScene({
   tokens = NO_TOKENS,
   onMoveIntent = IGNORE_MOVE_INTENT,
+  visibility = ALL_VISIBLE,
+  lights = NO_LIGHTS,
 }: BattleMapSceneProps = {}) {
   const invalidate = useThree((state) => state.invalidate)
   const { mode, visibleChunks } = useSceneSelection()
@@ -75,10 +88,12 @@ export function BattleMapScene({
         intensity={2.15}
         castShadow
       />
+      <LightLayer lights={lights} />
       <MapSurface mode={mode} visibleChunks={visibleChunks} />
       <ProceduralGrid />
       <DimensionalTerrain />
       <TokenLayer tokens={tokens} onMoveIntent={onMoveIntent} />
+      <VisibilityLayer grid={visibility} visibleChunks={visibleChunks} />
     </>
   )
 }
