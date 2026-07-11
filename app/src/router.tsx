@@ -4,11 +4,8 @@ import { LoginPage } from './auth/LoginPage'
 import { useAuthSession } from './auth/useAuthSession'
 import { CampaignDashboardPage } from './campaigns/CampaignDashboardPage'
 import { CampaignListPage } from './campaigns/CampaignListPage'
+import { JoinCampaignPage } from './campaigns/JoinCampaignPage'
 import { NewCampaignPage } from './campaigns/NewCampaignPage'
-
-function JoinCampaignPageStub() {
-  return <div>Join Campaign</div>
-}
 
 function RequireAuth() {
   const { session, loading } = useAuthSession()
@@ -26,7 +23,7 @@ export const routeConfig: RouteObject[] = [
       { path: '/campaigns', element: <CampaignListPage /> },
       { path: '/campaigns/new', element: <NewCampaignPage /> },
       { path: '/campaigns/:campaignId', element: <CampaignDashboardPage /> },
-      { path: '/join/:code', element: <JoinCampaignPageStub /> },
+      { path: '/join/:code', element: <JoinCampaignPage /> },
     ],
   },
 ]

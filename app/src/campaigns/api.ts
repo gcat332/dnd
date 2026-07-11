@@ -28,3 +28,9 @@ export async function createInvitation(campaignId: string): Promise<{ code: stri
   if (error) throw new Error(error.message)
   return { code: (data as { code: string }).code }
 }
+
+export async function redeemInvitation(code: string): Promise<{ campaignId: string }> {
+  const { data, error } = await supabase.rpc('redeem_campaign_invitation', { p_code: code })
+  if (error) throw new Error(error.message)
+  return { campaignId: (data as { campaign_id: string }).campaign_id }
+}

@@ -8,7 +8,7 @@ vi.mock('../lib/supabaseClient', () => ({
 }))
 
 import { supabase } from '../lib/supabaseClient'
-import { createCampaign, createInvitation, listMyCampaigns } from './api'
+import { createCampaign, createInvitation, listMyCampaigns, redeemInvitation } from './api'
 
 describe('createCampaign', () => {
   it('calls the create_campaign RPC and returns the campaign', async () => {
@@ -59,5 +59,30 @@ describe('createInvitation', () => {
       p_campaign_id: 'c1',
     })
     expect(result).toEqual({ code: 'ABCD1234' })
+  })
+})
+
+describe('redeemInvitation', () => {
+  it('calls the redeem_campaign_invitation RPC and returns the campaign id', async () => {
+    vi.mocked(supabase.rpc).mockResolvedValue({
+      data: { campaign_id: 'c1', user_id: 'u2', role: 'player' },
+      error: null,
+    } as never)
+
+    const result = await redeemInvitation('ABCD1234')
+
+    expect(supabase.rpc).toHaveBeenCalledWith('redeem_campaign_invitation', {
+      p_code: 'ABCD1234',
+    })
+    expect(result).toEqual({ campaignId: 'c1' })
+  })
+
+  it('surfaces a friendly error when the code is invalid', async () => {
+    vi.mocked(supabase.rpc).mockResolvedValue({
+      data: null,
+      error: { message: 'Invitation code not found' },
+    } as never)
+
+    await expect(redeemInvitation('BADCODE1')).rejects.toThrow('Invitation code not found')
   })
 })
