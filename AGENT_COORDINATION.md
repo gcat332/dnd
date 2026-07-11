@@ -41,3 +41,12 @@ When you start a task: add an entry with what you're touching (issue #, files, b
 **Status**: done. Decisions: Character scoped to exactly one Campaign (no portability); Battle Map is a reusable Campaign-level resource, not per-Session (enables future AI map generation from campaign story); Rules Object / Homebrew Content scoped to one Campaign (no cross-campaign DM library). Authored full entity model on Postgres/Supabase: Campaign, CampaignMembership, CampaignInvitation, Character, BattleMap, Token, Session, SessionPlan, SessionLog, RulesObject, CampaignDraft. Resolved Session Save and DM View/Player View as derived (not separate stored entities) rather than asking.
 **Touched**: issue #4 (resolution comment + closed), issue #1 map (Decisions-so-far, standing decisions, ticket checkbox, graduated fog, added an Out-of-scope line for character portability/DM library), `CONTEXT.md` (added `Rules Object` term). Committed on `main`.
 **Handoff**: #6 "Design Tactical Rules Automation enforcement", #7 "Scope the Rules Content Editor", and #9 "Design realtime session state and autosave" are all now unblocked (only #8 remains blocked, needs #7 too). Pick any of #6/#7/#9 next.
+
+---
+
+## 2026-07-11 — Claude Code (5)
+
+**Task**: GitHub #7 "Scope the Rules Content Editor" (Wayfinder ticket, child of map #1, `wayfinder:grilling`)
+**Status**: done. Decisions: DMs can edit spell/ability/monster/item/encounter/trait/resource Rules Objects; `damage_type`/`condition` stay fixed system taxonomy for Tactical Rules Automation (#6) to reason about. Mechanically-relevant fields use the shared Procedural Ability Template schema (same one AI generation will use, #8) with validation; flavor fields are freeform. No object-versioning UI in V1 — Session Log snapshots relevant numeric fields at time of use instead, so edits never rewrite history.
+**Touched**: issue #7 (resolution comment + closed), issue #1 map (Decisions-so-far, standing decisions, ticket checkbox, graduated fog, added an Out-of-scope line for version-history UI), `CONTEXT.md` (`Procedural Ability Template` reworded to cover both DM-authored and AI-generated abilities). Committed on `main`.
+**Handoff**: #8 "Design AI-assisted campaign and ability generation" is now fully unblocked (was waiting on #4, #5, #7 — all closed). #6 "Design Tactical Rules Automation enforcement" and #9 "Design realtime session state and autosave" remain open/unblocked too. Three tickets left total.

@@ -139,8 +139,8 @@ A content editor scope that lets DMs create rules-bearing content such as spells
 _Avoid_: Notes-only editor, full system builder
 
 **Procedural Ability Template**:
-A structured ability pattern with tags, costs, scaling, targeting, action timing, and balance constraints used to generate special abilities.
-_Avoid_: Freeform AI text, unbounded random ability
+A structured ability pattern with tags, costs, scaling, targeting, action timing, and balance constraints, used by both DM-authored and AI-generated special abilities so Tactical Rules Automation can interpret either the same way.
+_Avoid_: Freeform-only ability, unbounded random ability
 
 **AI-assisted Ability Generation**:
 A generation flow where AI suggests flavor, names, descriptions, or variants for abilities built around procedural templates, with DM approval before use.
