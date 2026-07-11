@@ -54,8 +54,24 @@ describe('campaign foundation RPCs', () => {
   })
 
   afterAll(async () => {
-    await adminClient.auth.admin.deleteUser(dm.userId)
-    await adminClient.auth.admin.deleteUser(player.userId)
+    // `campaigns.dm_user_id` and `campaign_invitations.created_by` reference
+    // `public.profiles(id)` with no `on delete cascade`/`on delete set null`, and
+    // `profiles.id` cascades from `auth.users.id`. So deleting the DM's auth user
+    // directly would hit a foreign-key violation against any campaigns rows they
+    // still own. Delete those campaigns first (service-role client bypasses RLS);
+    // `campaign_memberships` and `campaign_invitations` both reference
+    // `campaigns.id` with `on delete cascade`, so this cleans those up too.
+    const { error: dmCampaignsError } = await adminClient
+      .from('campaigns')
+      .delete()
+      .eq('dm_user_id', dm.userId)
+    if (dmCampaignsError) throw dmCampaignsError
+
+    const { error: dmDeleteError } = await adminClient.auth.admin.deleteUser(dm.userId)
+    if (dmDeleteError) throw dmDeleteError
+
+    const { error: playerDeleteError } = await adminClient.auth.admin.deleteUser(player.userId)
+    if (playerDeleteError) throw playerDeleteError
   })
 
   it('creates a campaign with the caller as DM', async () => {
