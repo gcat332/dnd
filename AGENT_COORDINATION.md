@@ -8,6 +8,46 @@ When you start a task: add an entry with what you're touching (issue #, files, b
 
 ---
 
+## 2026-07-12 — Claude Code (SESSION WRAP-UP / current state of the whole project)
+
+**Everything below this entry is history.** This is the single "where are we" snapshot — read it first.
+
+**Repo state**: `main` is pushed to `origin` (`e690f85`), working tree clean, no open worktrees/branches. Local Supabase stack stopped; Docker Desktop quit. App lives at `app/` (Vite + React 19 + Three.js/R3F + Supabase). `npm test` = 138/138, `npm run build` clean. Integration tests (`npm run test:db`) need Docker + `npx supabase start` first.
+
+**Planning (Wayfinder map, GitHub issue #1): COMPLETE.** All 9 tickets (#2–#9) closed. Project rebranded **Taleforge** (dropped SRD entirely, uses only generic RPG mechanics + 100% original content; V1 starter theme = old-school JRPG "hero vs. demon lord"). Full decision index is in issue #1's "Decisions so far".
+
+**Implementation shipped (2 of ~8 subsystems):**
+1. **Foundation** — Discord OAuth login, `campaigns`/`campaign_memberships`/`campaign_invitations` schema + RLS + `SECURITY DEFINER` RPCs, create/invite/join Campaign UI. Plan: `docs/superpowers/plans/2026-07-11-taleforge-foundation.md`.
+2. **Battle Map Integration** — `battle_maps` table (Campaign-scoped, DM-only RPC), list/create UI on the campaign dashboard, `/campaigns/:id/maps/:mapId` route mounting the real 3D `BattleMapScene` (empty — no terrain/token data yet). Plan: `docs/superpowers/plans/2026-07-11-taleforge-battle-map-integration.md`.
+
+**Architecture conventions established (follow these in future subsystem plans):**
+- Reads via RLS (`is_campaign_member(campaign_id)`); writes via `SECURITY DEFINER` Postgres RPC gateway (never direct client insert). Rules-affecting *gameplay* actions will use a Supabase Edge Function — a separate, not-yet-built mechanism (issues #6/#9).
+- Every new migration is append-only and MUST include its own inline `GRANT`s to `authenticated` (a hosted Supabase project revokes Data API privileges by default — learned the hard way in Foundation, applied cleanly in `0003`).
+- New integration test files: keep `fileParallelism: false` (shared local GoTrue container races otherwise).
+- UI error handling: try/catch → `setError` → `.error-message` on BOTH create-paths and load-paths (a load-path miss regressed once and was caught in review — don't repeat).
+- Battle Map coordinate space is a fixed global `MAP_SIZE_CELLS = 200`; no per-map dimension columns.
+
+**KNOWN GAPS needing a human (not code — cannot be done in an automated session):**
+1. **Discord OAuth app** not set up. `handle_new_user` trigger's `discord_username` mapping (`raw_user_meta_data -> 'custom_claims' ->> 'global_name'`) is an UNVERIFIED guess — after a first real Discord sign-in, check the actual payload and fix via a follow-up migration if wrong (`0001_campaign_foundation.sql` has a comment about this).
+2. **Hosted Supabase project** not set up — app currently points at the local stack via `app/.env.local`.
+3. **Repo/folder rename** `gcat332/dnd` → Taleforge branding — flagged repeatedly, high-blast-radius, needs explicit sign-off.
+
+**Deferred/non-blocking tech debt (tracked, safe to leave):**
+- `BattleMapCameraControls` doesn't sync pan/zoom to the `useBattleMapView` store → detail/overview LOD frozen at initial camera state (fine for empty maps; wire up when terrain/tokens land).
+- No `WebGLContextBoundary` in production `BattleMapView` (the dev-harness `BattleMapCanvas` has one).
+- Battle Map route not lazy-loaded → Three.js/R3F (~1MB) is in the initial bundle for every route. `React.lazy` on `BattleMapPage` would fix it.
+- `redeem_campaign_invitation`'s expiry/max_uses checks are dead code (no UI sets those columns yet).
+
+**Next subsystem to build (pick one, write a plan with `writing-plans`, then execute with subagent-driven-development):**
+- **Terrain/wall editor** — make `DimensionalTerrain` data-driven off a `battle_maps` terrain column instead of hardcoded fixture geometry (currently every map shows the same fixed walls). Most natural next step — directly extends what was just shipped.
+- **Token placement/movement** — persist `Token` rows on a Battle Map, render/drag them (the renderer already supports tokens; needs data + persistence + the ownership-gated write model from issue #9).
+- **Live Session state** (#9) — realtime sync via Supabase Postgres Changes + the Edge Function gateway; larger, depends on tokens existing first.
+- Rules Content Editor (#7), Tactical Rules Automation (#6), AI generation (#8) — later, mostly independent.
+
+Recommended order: terrain editor → token placement → live session. Each is one `writing-plans` + one subagent-driven-development run, same rhythm as the two subsystems already shipped.
+
+---
+
 ## 2026-07-11 — Claude Code (Task 5: BattleMapView production viewer)
 
 **Task**: Task 5 (final task) of `docs/superpowers/plans` battle map integration plan — replace the Task-4 stub `BattleMapView` with the real Canvas/MapControls/BattleMapScene composition that `BattleMapPage` mounts.
