@@ -29,6 +29,7 @@ export function ChunkSurface({ address, loadTexture = loadFixtureTexture }: Chun
   useEffect(() => {
     let active = true
     let loadedTexture: Texture | null = null
+    const loadStartedAt = performance.now()
     setTexture(null)
     setLoadState('loading')
 
@@ -41,6 +42,11 @@ export function ChunkSurface({ address, loadTexture = loadFixtureTexture }: Chun
         }
         setTexture(resource)
         setLoadState('ready')
+        window.dispatchEvent(
+          new CustomEvent('battle-map:chunk-loaded', {
+            detail: { latencyMs: performance.now() - loadStartedAt },
+          }),
+        )
         invalidate()
       },
       () => {

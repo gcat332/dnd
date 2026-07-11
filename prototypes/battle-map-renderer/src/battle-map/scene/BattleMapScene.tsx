@@ -1,10 +1,13 @@
-import { useThree } from '@react-three/fiber'
-import { useEffect, useMemo } from 'react'
+import { useFrame, useThree } from '@react-three/fiber'
+import { useEffect, useMemo, useRef } from 'react'
+import type { Group } from 'three'
 import type { ChunkAddress } from '../domain/chunks'
 import type { AreaTemplate } from '../domain/effects'
 import { MAP_SIZE_CELLS, type WorldPoint } from '../domain/grid'
 import type { MoveIntent, TokenRenderState } from '../domain/tokens'
 import type { VisibilityGrid } from '../domain/visibility'
+import type { StressWall } from '../fixtures/createStressScene'
+import type { SceneQualitySettings } from '../performance/quality'
 import {
   mapDetailMode,
   visibleChunkAddresses,
@@ -61,6 +64,9 @@ type BattleMapSceneProps = {
   remoteTokenAnimations?: readonly RemoteTokenAnimation[]
   onAnimatedTokenWorldPoint?: (tokenId: string, point: WorldPoint) => void
   onRemoteTokenAnimationComplete?: (animation: RemoteTokenAnimation) => void
+  qualitySettings?: SceneQualitySettings
+  stressWalls?: readonly StressWall[]
+  stressEffects?: boolean
 }
 
 const NO_TOKENS: readonly TokenRenderState[] = []
@@ -71,6 +77,34 @@ const ALL_VISIBLE: VisibilityGrid = {
   cells: Array.from({ length: MAP_SIZE_CELLS * MAP_SIZE_CELLS }, () => 'visible'),
 }
 const IGNORE_MOVE_INTENT = () => undefined
+const DEFAULT_QUALITY: SceneQualitySettings = {
+  maxDpr: 2,
+  shadowMapSize: 2048,
+  softShadows: true,
+  particleScale: 1,
+  postProcessing: true,
+}
+
+function StressEffect({ particleScale }: Readonly<{ particleScale: number }>) {
+  const group = useRef<Group>(null)
+  const particleCount = Math.round(48 * particleScale)
+  useFrame(({ clock }) => {
+    if (group.current) group.current.rotation.y = clock.elapsedTime * 0.35
+  })
+  return (
+    <group ref={group} name="stress-particle-effect" position={[100, 0, 100]}>
+      {Array.from({ length: particleCount }, (_, index) => (
+        <mesh
+          key={index}
+          position={[-6 + (index % 12), 0.35 + (index % 4) * 0.16, -4 + Math.floor(index / 12)]}
+        >
+          <sphereGeometry args={[0.09, 4, 4]} />
+          <meshBasicMaterial color={index % 2 === 0 ? '#ffcf66' : '#6bdcff'} />
+        </mesh>
+      ))}
+    </group>
+  )
+}
 
 export function BattleMapScene({
   tokens = NO_TOKENS,
@@ -81,6 +115,9 @@ export function BattleMapScene({
   remoteTokenAnimations = [],
   onAnimatedTokenWorldPoint,
   onRemoteTokenAnimationComplete,
+  qualitySettings = DEFAULT_QUALITY,
+  stressWalls = [],
+  stressEffects = false,
 }: BattleMapSceneProps = {}) {
   const invalidate = useThree((state) => state.invalidate)
   const { mode, visibleChunks } = useSceneSelection()
@@ -98,11 +135,14 @@ export function BattleMapScene({
         position={[78, 130, 52]}
         intensity={2.15}
         castShadow
+        shadow-mapSize-width={qualitySettings.shadowMapSize}
+        shadow-mapSize-height={qualitySettings.shadowMapSize}
       />
-      <LightLayer lights={lights} />
+      <LightLayer lights={lights} shadowMapSize={qualitySettings.shadowMapSize} />
       <MapSurface mode={mode} visibleChunks={visibleChunks} />
       <ProceduralGrid />
-      <DimensionalTerrain />
+      <DimensionalTerrain stressWalls={stressWalls} />
+      {stressEffects ? <StressEffect particleScale={qualitySettings.particleScale} /> : null}
       <TargetingLayer template={targetTemplate} />
       <TokenLayer
         tokens={tokens}

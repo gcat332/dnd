@@ -12,9 +12,10 @@ export type VisualLight = Readonly<{
 
 export type LightLayerProps = {
   lights: readonly VisualLight[]
+  shadowMapSize?: 2048 | 1024 | 512
 }
 
-export function LightLayer({ lights }: LightLayerProps) {
+export function LightLayer({ lights, shadowMapSize = 2048 }: LightLayerProps) {
   return (
     <group name="light-layer">
       {lights.map((light) => {
@@ -29,6 +30,8 @@ export function LightLayer({ lights }: LightLayerProps) {
             distance={light.range}
             decay={2}
             castShadow
+            shadow-mapSize-width={shadowMapSize}
+            shadow-mapSize-height={shadowMapSize}
           />
         )
       })}

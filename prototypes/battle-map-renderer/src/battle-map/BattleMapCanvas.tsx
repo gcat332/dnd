@@ -19,10 +19,18 @@ import {
   removeCompletedRemoteTokenAnimation,
   type RemoteTokenAnimation,
 } from './scene/AnimatedToken'
+import { createStressScene } from './fixtures/createStressScene'
+import {
+  ScenePerformanceMonitor,
+  type SceneMetrics,
+} from './performance/ScenePerformanceMonitor'
+import { QUALITY_SETTINGS, type SceneQuality } from './performance/quality'
+import { WebGLContextBoundary } from './performance/WebGLContextBoundary'
 
 type BattleMapCameraProps = {
   onReady: () => void
   onVisibilityProbePoints: (points: VisibilityProbePoints) => void
+  interactionsEnabled: boolean
 }
 
 type ScreenPoint = Readonly<{ x: number; y: number }>
@@ -164,7 +172,11 @@ function fixtureViewer(): Viewer {
   return new URLSearchParams(window.location.search).get('viewer') === 'player' ? 'player' : 'dm'
 }
 
-function BattleMapCamera({ onReady, onVisibilityProbePoints }: BattleMapCameraProps) {
+function BattleMapCamera({
+  onReady,
+  onVisibilityProbePoints,
+  interactionsEnabled,
+}: BattleMapCameraProps) {
   const controls = useRef<MapControlsImpl>(null)
   const camera = useThree((state) => state.camera)
   const size = useThree((state) => state.size)
@@ -205,7 +217,7 @@ function BattleMapCamera({ onReady, onVisibilityProbePoints }: BattleMapCameraPr
     <MapControls
       ref={controls}
       target={[100, 0, 100]}
-      enabled={dragPreview === null}
+      enabled={interactionsEnabled && dragPreview === null}
       enableDamping={false}
       enableRotate={false}
       minZoom={4}
@@ -304,17 +316,57 @@ function EffectsAnimationDiagnostics({
   )
 }
 
+const EMPTY_METRICS: SceneMetrics = {
+  averageFps: 0,
+  p95FrameTimeMs: 0,
+  drawCalls: 0,
+  triangles: 0,
+  textures: 0,
+  dpr: 1,
+  p95ChunkLatencyMs: 0,
+  p95InputLatencyMs: 0,
+  frameSamples: 0,
+}
+const IGNORE_METRICS = () => undefined
+
+function tokenChecksum(tokens: readonly TokenRenderState[]): string {
+  let checksum = 0x811c9dc5
+  for (const token of tokens) {
+    for (const character of `${token.id}:${token.cell.column}:${token.cell.row};`) {
+      checksum ^= character.charCodeAt(0)
+      checksum = Math.imul(checksum, 0x01000193)
+    }
+  }
+  return (checksum >>> 0).toString(16).padStart(8, '0')
+}
+
+function fixtureStressMode(): boolean {
+  return new URLSearchParams(window.location.search).get('stress') === '1'
+}
+
+function isSceneQuality(value: unknown): value is SceneQuality {
+  return value === 'high' || value === 'medium' || value === 'low'
+}
+
 export function BattleMapCanvas() {
   const [viewer] = useState<Viewer>(fixtureViewer)
-  const [fixtureTokens, setFixtureTokens] = useState(FIXTURE_TOKENS)
+  const [stressMode] = useState(fixtureStressMode)
+  const [stressScene] = useState(() => createStressScene(Date.now()))
+  const [fixtureTokens, setFixtureTokens] = useState<readonly TokenRenderState[]>(() =>
+    stressMode ? stressScene.interactiveObjects : FIXTURE_TOKENS,
+  )
   const [cameraReady, setCameraReady] = useState(false)
   const [moveIntents, setMoveIntents] = useState<readonly MoveIntent[]>([])
   const [movingLightCell, setMovingLightCell] = useState<GridCell>({ column: 101, row: 100 })
   const [probePoints, setProbePoints] = useState<VisibilityProbePoints | null>(null)
   const [templateKind, setTemplateKind] = useState<TemplateKind>('circle')
-  const [remoteTokenAnimations, setRemoteTokenAnimations] = useState<
-    readonly RemoteTokenAnimation[]
-  >([])
+  const [remoteTokenAnimations, setRemoteTokenAnimations] = useState<readonly RemoteTokenAnimation[]>(
+    () => (stressMode ? stressScene.animations : []),
+  )
+  const [quality, setQuality] = useState<SceneQuality>('high')
+  const [metrics, setMetrics] = useState<SceneMetrics>(EMPTY_METRICS)
+  const [contextLost, setContextLost] = useState(false)
+  const [rendererGeneration, setRendererGeneration] = useState(0)
   const [animationDiagnostics, setAnimationDiagnostics] = useState<{
     point: WorldPoint | null
     sampleCount: number
@@ -363,49 +415,83 @@ export function BattleMapCanvas() {
       removeCompletedRemoteTokenAnimation(current, completed),
     )
   }, [])
+  const loseContext = useCallback(() => setContextLost(true), [])
+  const restoreContext = useCallback(() => setContextLost(false), [])
+  const retryRenderer = useCallback(() => {
+    setRendererGeneration((generation) => generation + 1)
+    setContextLost(false)
+  }, [])
+  const forceFixtureQuality = useCallback((event: Event) => {
+    const detail: unknown = (event as CustomEvent<unknown>).detail
+    if (isRecord(detail) && isSceneQuality(detail.quality)) setQuality(detail.quality)
+  }, [])
   const tokens =
     viewer === 'dm'
       ? fixtureTokens
       : fixtureTokens.filter((token) => PLAYER_TOKENS.some((playerToken) => playerToken.id === token.id))
   const visibility = viewer === 'dm' ? DM_VISIBILITY : PLAYER_VISIBILITY
-  const lights: readonly VisualLight[] = [
-    ...FIXED_LIGHTS,
-    {
-      id: 'moving-torch',
-      cell: movingLightCell,
-      elevation: 3.5,
-      color: '#ffd27a',
-      intensity: 24,
-      range: 18,
-    },
-  ]
+  const lights: readonly VisualLight[] = stressMode
+    ? stressScene.lights
+    : [
+        ...FIXED_LIGHTS,
+        {
+          id: 'moving-torch',
+          cell: movingLightCell,
+          elevation: 3.5,
+          color: '#ffd27a',
+          intensity: 24,
+          range: 18,
+        },
+      ]
+  const qualitySettings = QUALITY_SETTINGS[quality]
 
   useEffect(() => {
     window.addEventListener('battle-map:move-light', moveFixtureLight)
     window.addEventListener('battle-map:set-template', setFixtureTemplate)
     window.addEventListener('battle-map:remote-token-update', acceptRemoteTokenUpdate)
+    window.addEventListener('battle-map:set-quality', forceFixtureQuality)
     return () => {
       window.removeEventListener('battle-map:move-light', moveFixtureLight)
       window.removeEventListener('battle-map:set-template', setFixtureTemplate)
       window.removeEventListener('battle-map:remote-token-update', acceptRemoteTokenUpdate)
+      window.removeEventListener('battle-map:set-quality', forceFixtureQuality)
     }
-  }, [acceptRemoteTokenUpdate, moveFixtureLight, setFixtureTemplate])
+  }, [acceptRemoteTokenUpdate, forceFixtureQuality, moveFixtureLight, setFixtureTemplate])
 
   return (
     <div className="battle-map-shell">
       <Canvas
+        key={rendererGeneration}
         data-testid="battle-map-canvas"
+        className={contextLost ? 'battle-map-canvas-paused' : undefined}
         orthographic
-        frameloop="demand"
-        camera={{ position: [100, 150, 160], rotation: [-1.19, 0, 0], zoom: 4 }}
+        frameloop={stressMode ? 'always' : 'demand'}
+        camera={{
+          position: [100, 150, 160],
+          rotation: [-1.19, 0, 0],
+          zoom: stressMode ? 18 : 4,
+        }}
         gl={{ antialias: true, powerPreference: 'high-performance' }}
-        dpr={[1, 2]}
-        shadows="percentage"
+        dpr={[1, qualitySettings.maxDpr]}
+        shadows={qualitySettings.softShadows ? 'percentage' : false}
       >
         <color attach="background" args={['#171a1f']} />
+        {stressMode && stressScene.fog.active ? (
+          <fog
+            attach="fog"
+            args={[stressScene.fog.color, stressScene.fog.near, stressScene.fog.far]}
+          />
+        ) : null}
+        <WebGLContextBoundary onLost={loseContext} onRestored={restoreContext} />
+        <ScenePerformanceMonitor
+          quality={quality}
+          onQualityChange={setQuality}
+          onMetrics={stressMode ? setMetrics : IGNORE_METRICS}
+        />
         <BattleMapCamera
           onReady={markCameraReady}
           onVisibilityProbePoints={recordVisibilityProbePoints}
+          interactionsEnabled={!contextLost}
         />
         <BattleMapScene
           tokens={tokens}
@@ -416,8 +502,29 @@ export function BattleMapCanvas() {
           remoteTokenAnimations={remoteTokenAnimations}
           onAnimatedTokenWorldPoint={recordAnimatedTokenPoint}
           onRemoteTokenAnimationComplete={completeRemoteTokenAnimation}
+          qualitySettings={qualitySettings}
+          stressWalls={stressMode ? stressScene.walls : []}
+          stressEffects={stressMode}
         />
       </Canvas>
+      <div className="map-tool-controls" role="toolbar" aria-label="Map effects">
+        {(['circle', 'cone', 'line'] as const).map((kind) => (
+          <button
+            key={kind}
+            type="button"
+            aria-pressed={templateKind === kind}
+            onClick={() => setTemplateKind(kind)}
+          >
+            {kind[0]!.toUpperCase() + kind.slice(1)}
+          </button>
+        ))}
+      </div>
+      {contextLost ? (
+        <section className="webgl-recovery" data-testid="webgl-recovery" role="alert">
+          <strong>Map renderer paused</strong>
+          <button type="button" onClick={retryRenderer}>Retry renderer</button>
+        </section>
+      ) : null}
       <ChunkDiagnostics cameraReady={cameraReady} />
       <TokenInteractionDiagnostics moveIntents={moveIntents} />
       <VisibilityDiagnostics
@@ -432,6 +539,20 @@ export function BattleMapCanvas() {
         renderedTokenPoint={animationDiagnostics.point}
         animationSampleCount={animationDiagnostics.sampleCount}
         activeAnimationCount={remoteTokenAnimations.length}
+      />
+      <output
+        hidden
+        data-testid="scene-performance-diagnostics"
+        data-quality={quality}
+        data-max-dpr={qualitySettings.maxDpr}
+        data-shadow-map-size={qualitySettings.shadowMapSize}
+        data-soft-shadows={qualitySettings.softShadows}
+        data-particle-scale={qualitySettings.particleScale}
+        data-post-processing={qualitySettings.postProcessing}
+        data-object-count={tokens.length}
+        data-token-checksum={tokenChecksum(tokens)}
+        data-frame-samples={metrics.frameSamples}
+        data-metrics={JSON.stringify(metrics)}
       />
     </div>
   )

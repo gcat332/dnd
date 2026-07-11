@@ -1,4 +1,5 @@
 import { BoxGeometry, MeshStandardMaterial } from 'three'
+import type { StressWall } from '../fixtures/createStressScene'
 
 const BOX_GEOMETRY = new BoxGeometry(1, 1, 1)
 const STONE_MATERIAL = new MeshStandardMaterial({ color: '#73777b', roughness: 0.88 })
@@ -22,7 +23,9 @@ function TerrainBox({ name, position, scale, material }: TerrainBoxProps) {
   )
 }
 
-export function DimensionalTerrain() {
+type DimensionalTerrainProps = Readonly<{ stressWalls?: readonly StressWall[] }>
+
+export function DimensionalTerrain({ stressWalls = [] }: DimensionalTerrainProps) {
   return (
     <group name="dimensional-terrain" dispose={null}>
       <TerrainBox name="wall" position={[99, 1.5, 94]} scale={[18, 3, 1]} material={STONE_MATERIAL} />
@@ -39,6 +42,15 @@ export function DimensionalTerrain() {
         scale={[1.1, 4, 1.1]}
         material={MARKER_MATERIAL}
       />
+      {stressWalls.map((wall) => (
+        <TerrainBox
+          key={wall.id}
+          name={`stress-wall-${wall.id}`}
+          position={[...wall.position]}
+          scale={[...wall.scale]}
+          material={STONE_MATERIAL}
+        />
+      ))}
     </group>
   )
 }
