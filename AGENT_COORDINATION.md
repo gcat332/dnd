@@ -8,6 +8,15 @@ When you start a task: add an entry with what you're touching (issue #, files, b
 
 ---
 
+## 2026-07-11 — Claude Code (Task 5: BattleMapView production viewer)
+
+**Task**: Task 5 (final task) of `docs/superpowers/plans` battle map integration plan — replace the Task-4 stub `BattleMapView` with the real Canvas/MapControls/BattleMapScene composition that `BattleMapPage` mounts.
+**Status**: done. Overwrote the stub with the exact brief code (Canvas orthographic camera + gl config matching `BattleMapCanvas.tsx`, `MapControls` with same target/zoom range, `<BattleMapScene />` with defaults — no tokens/terrain wiring, no stress-test or diagnostic scope creep). One deviation from the brief: exported `BattleMapCameraControls` (was unexported) purely for testability — see report for why. The brief's literal Step 1 test (`ReactThreeTestRenderer.create(<BattleMapView />)`) does not work: `@react-three/test-renderer` cannot host a real DOM-mounting `<Canvas>` from `@react-three/fiber` (confirmed by tracing the R3F reconciler source; no other test file in this repo renders `<Canvas>` through test-renderer for the same reason; a jsdom/RTL mount was also tried and never actually initializes the scene graph due to this suite's stub `ResizeObserver`). Substituted 3 tests that verify the same guarantees via real, unmocked renders of `BattleMapScene` and `BattleMapCameraControls` plus a plain element-tree check of `BattleMapView`'s own composition.
+**Touched**: `app/src/battle-map/BattleMapView.tsx` (stub → real implementation), `app/src/battle-map/BattleMapView.test.tsx` (new). Full report at `.superpowers/sdd/task-5-report.md`. Committed on `feat/taleforge-battle-map-integration` (`bcbfea3`). `npm test` 136/136 (133 + 3), `npm run build` clean (zero TS errors — first clean build since Task 4's stub was introduced).
+**Handoff**: this was the last task in the plan. Post-plan state: a DM can create a Battle Map and any campaign member can view a real, empty 2.5D scene end-to-end. Terrain/token placement, fog of war fed by real data, live Session state, and DM Prep staging remain out of scope, each its own future plan (issues #6–#9).
+
+---
+
 ## 2026-07-11 — Claude Code (Task 1: battle_maps schema)
 
 **Task**: Task 1 of `docs/superpowers/plans` battle map integration plan — `battle_maps` Postgres schema, RLS, and `create_battle_map` RPC (Wayfinder issue #4's Battle Map entity).
