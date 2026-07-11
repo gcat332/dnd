@@ -1,5 +1,5 @@
 import type { RouteObject } from 'react-router'
-import { Navigate, Outlet } from 'react-router'
+import { Navigate, Outlet, useLocation } from 'react-router'
 import { LoginPage } from './auth/LoginPage'
 import { useAuthSession } from './auth/useAuthSession'
 import { CampaignDashboardPage } from './campaigns/CampaignDashboardPage'
@@ -9,9 +9,10 @@ import { NewCampaignPage } from './campaigns/NewCampaignPage'
 
 function RequireAuth() {
   const { session, loading } = useAuthSession()
+  const location = useLocation()
 
   if (loading) return <div>Loading...</div>
-  if (!session) return <Navigate to="/login" replace />
+  if (!session) return <Navigate to="/login" state={{ from: location.pathname }} replace />
   return <Outlet />
 }
 

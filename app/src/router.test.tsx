@@ -1,6 +1,6 @@
-import { render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { RouterProvider, createMemoryRouter } from 'react-router'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { routeConfig } from './router'
 
 vi.mock('./lib/supabaseClient', () => ({
@@ -10,6 +10,7 @@ vi.mock('./lib/supabaseClient', () => ({
         data: { session: { user: { id: 'user-1' } } },
       }),
       onAuthStateChange: vi.fn(() => ({ data: { subscription: { unsubscribe: vi.fn() } } })),
+      signInWithOAuth: vi.fn().mockResolvedValue({ data: {}, error: null }),
     },
     from: vi.fn(() => ({
       select: vi.fn().mockReturnValue({
@@ -25,6 +26,10 @@ async function setAuthSession(session: unknown) {
     data: { session },
   } as never)
 }
+
+afterEach(() => {
+  cleanup()
+})
 
 describe('routeConfig', () => {
   it('renders the login route at /login', async () => {
@@ -47,5 +52,23 @@ describe('routeConfig', () => {
     render(<RouterProvider router={router} />)
 
     expect(await screen.findByText(/sign in with discord/i)).toBeInTheDocument()
+  })
+
+  it('preserves the originally requested /join/:code path through the login redirect', async () => {
+    await setAuthSession(null)
+    const { supabase } = await import('./lib/supabaseClient')
+    const router = createMemoryRouter(routeConfig, { initialEntries: ['/join/ABCD1234'] })
+    render(<RouterProvider router={router} />)
+
+    expect(await screen.findByText(/sign in with discord/i)).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: /sign in with discord/i }))
+
+    await waitFor(() => {
+      expect(supabase.auth.signInWithOAuth).toHaveBeenCalledWith({
+        provider: 'discord',
+        options: { redirectTo: expect.stringContaining('/join/ABCD1234') },
+      })
+    })
   })
 })
