@@ -8,6 +8,15 @@ When you start a task: add an entry with what you're touching (issue #, files, b
 
 ---
 
+## 2026-07-11 — Claude Code (final-review fixes)
+
+**Task**: fixed 2 Important + 1 folded-in Minor finding from the final whole-branch review of `docs/superpowers/plans/2026-07-11-taleforge-foundation.md` (all 8 tasks complete), before merge.
+**Status**: done. (1) `NewCampaignPage` now catches `createCampaign` failures, shows an error, and re-enables the submit button instead of dead-ending. (2) Added `app/supabase/migrations/0002_grants.sql` with explicit `GRANT`s for `authenticated` (matching each RLS policy) — this is exactly the follow-up flagged in the Task 5 entry below ("before 2026-10-30, replace the `auto_expose_new_tables` compat flag with explicit GRANT statements"). Also discovered and fixed a related gap: Supabase's revoke-by-default change also strips `service_role` privileges, which broke this repo's own integration-test cleanup under a hosted-realistic config — added one small `service_role` grant for that. Verified with `auto_expose_new_tables = false` + fresh `supabase db reset` that `test:db` passes 4/4 on grants alone, then set the flag to `false` permanently (redundant now, and scheduled for removal anyway). (3) `CampaignListPage`/`InvitePanel` now surface load/generate failures instead of failing silently.
+**Touched**: `app/src/campaigns/{NewCampaignPage,CampaignListPage,InvitePanel}.tsx` + their `.test.tsx` files, `app/supabase/migrations/0002_grants.sql` (new), `app/supabase/config.toml`. Full report at `.superpowers/sdd/final-review-fix-report.md`. Committed on `feat/taleforge-foundation` (`310fffe`). `npm test` 123/123, `npm run build` clean, `npm run test:db` 4/4.
+**Handoff**: all 3 review findings resolved, branch should be ready to merge pending human sign-off. No further follow-ups identified.
+
+---
+
 ## 2026-07-11 — Claude Code
 
 **Task**: GitHub #2 "Define the playable V1 boundary" (Wayfinder ticket, child of map #1)
