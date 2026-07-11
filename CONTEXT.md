@@ -87,7 +87,7 @@ A character model that supports detailed stats, progression, class/species/backg
 _Avoid_: Token profile, simple HP card
 
 **Generated Special Ability**:
-A searchable ability produced from character option combinations or original content rules, intended to create variety beyond fixed SRD entries.
+A searchable ability produced from character option combinations or original content rules, intended to create variety beyond Taleforge's shipped starter content.
 _Avoid_: Official-only feature, static trait
 
 **Original Ruleset**:
