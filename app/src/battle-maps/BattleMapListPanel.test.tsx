@@ -69,4 +69,18 @@ describe('BattleMapListPanel', () => {
       await screen.findByText(/only the current dm can create a battle map/i),
     ).toBeInTheDocument()
   })
+
+  it('shows an error message when the initial battle map list fails to load', async () => {
+    const { listCampaignBattleMaps } = await import('./api')
+    vi.mocked(listCampaignBattleMaps).mockRejectedValueOnce(new Error('Network error'))
+
+    render(
+      <MemoryRouter>
+        <BattleMapListPanel campaignId="campaign-1" />
+      </MemoryRouter>,
+    )
+
+    expect(await screen.findByText(/failed to load battle maps: network error/i)).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /keep — ground floor/i })).not.toBeInTheDocument()
+  })
 })

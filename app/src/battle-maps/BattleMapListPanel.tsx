@@ -10,9 +10,15 @@ export function BattleMapListPanel({ campaignId }: BattleMapListPanelProps) {
   const [maps, setMaps] = useState<BattleMap[]>([])
   const [name, setName] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [loadError, setLoadError] = useState<string | null>(null)
 
   useEffect(() => {
-    void listCampaignBattleMaps(campaignId).then(setMaps)
+    setLoadError(null)
+    listCampaignBattleMaps(campaignId)
+      .then(setMaps)
+      .catch((listError: unknown) => {
+        setLoadError(listError instanceof Error ? listError.message : String(listError))
+      })
   }, [campaignId])
 
   async function handleCreate(event: React.FormEvent) {
@@ -30,6 +36,7 @@ export function BattleMapListPanel({ campaignId }: BattleMapListPanelProps) {
   return (
     <section className="battle-map-list-panel">
       <h2>Battle Maps</h2>
+      {loadError && <div className="error-message">Failed to load battle maps: {loadError}</div>}
       <ul>
         {maps.map((map) => (
           <li key={map.id}>

@@ -54,4 +54,16 @@ describe('BattleMapPage', () => {
     expect(await screen.findByText(/battle map not found/i)).toBeInTheDocument()
     expect(screen.queryByTestId('battle-map-view')).not.toBeInTheDocument()
   })
+
+  it('shows an error message instead of loading forever when the map fails to load', async () => {
+    vi.mocked(getBattleMap).mockRejectedValue(new Error('Row level security denied access'))
+
+    renderAt('map-1')
+
+    expect(
+      await screen.findByText(/failed to load battle map: row level security denied access/i),
+    ).toBeInTheDocument()
+    expect(screen.queryByText(/loading map/i)).not.toBeInTheDocument()
+    expect(screen.queryByTestId('battle-map-view')).not.toBeInTheDocument()
+  })
 })
