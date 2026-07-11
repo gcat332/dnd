@@ -1,9 +1,8 @@
-import { BattleMapCanvas } from './battle-map/BattleMapCanvas'
+import { RouterProvider, createBrowserRouter } from 'react-router'
+import { routeConfig } from './router'
+
+const router = createBrowserRouter(routeConfig)
 
 export function App() {
-  return (
-    <main className="battle-map-app">
-      <BattleMapCanvas />
-    </main>
-  )
+  return <RouterProvider router={router} />
 }

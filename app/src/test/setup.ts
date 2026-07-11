@@ -1,3 +1,5 @@
+import '@testing-library/jest-dom/vitest'
+
 class TestResizeObserver implements ResizeObserver {
   observe(_target: Element, _options?: ResizeObserverOptions) {}
   unobserve(_target: Element) {}
