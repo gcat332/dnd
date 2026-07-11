@@ -13,7 +13,18 @@ if (!SERVICE_ROLE_KEY || !ANON_KEY) {
   )
 }
 
-const adminClient = createClient(SUPABASE_URL, SERVICE_ROLE_KEY)
+// The guard above proves these are defined at runtime, but TypeScript can't carry that
+// narrowing into the closures below (module-level `const`s aren't narrowed inside nested
+// functions), so a `!` assertion here is honest rather than a suppression.
+const adminClient = createClient(SUPABASE_URL, SERVICE_ROLE_KEY!)
+
+// Local shapes for the untyped `.rpc()` responses below: with no generated `Database` type
+// passed to `createClient()`, Postgrest infers RPC response `data` as `{}`, so property
+// access needs a cast. These describe only the fields this test file reads.
+type Campaign = { id: string; name: string; dm_user_id: string }
+type Invitation = { id: string; code: string }
+type Membership = { role: string; campaign_id: string }
+type RpcSingleResult<T> = { data: T | null; error: { message: string } | null }
 
 async function createTestUserClient(email: string) {
   const { data, error } = await adminClient.auth.admin.createUser({
@@ -23,7 +34,7 @@ async function createTestUserClient(email: string) {
   })
   if (error) throw error
 
-  const client = createClient(SUPABASE_URL, ANON_KEY)
+  const client = createClient(SUPABASE_URL, ANON_KEY!)
   const { error: signInError } = await client.auth.signInWithPassword({
     email,
     password: 'test-password-123',
@@ -48,7 +59,9 @@ describe('campaign foundation RPCs', () => {
   })
 
   it('creates a campaign with the caller as DM', async () => {
-    const { data, error } = await dm.client.rpc('create_campaign', { p_name: 'The Fallen Spire' })
+    const { data, error } = (await dm.client.rpc('create_campaign', {
+      p_name: 'The Fallen Spire',
+    })) as RpcSingleResult<Campaign>
 
     expect(error).toBeNull()
     expect(data?.name).toBe('The Fallen Spire')
@@ -56,35 +69,35 @@ describe('campaign foundation RPCs', () => {
   })
 
   it('lets only the DM create an invitation for their campaign', async () => {
-    const { data: campaign } = await dm.client
+    const { data: campaign } = (await dm.client
       .rpc('create_campaign', { p_name: 'Ashen Reach' })
-      .single()
+      .single()) as RpcSingleResult<Campaign>
 
-    const { data: invitation, error } = await dm.client.rpc('create_campaign_invitation', {
+    const { data: invitation, error } = (await dm.client.rpc('create_campaign_invitation', {
       p_campaign_id: campaign!.id,
-    })
+    })) as RpcSingleResult<Invitation>
 
     expect(error).toBeNull()
     expect(invitation?.code).toHaveLength(8)
 
-    const { error: forbiddenError } = await player.client.rpc('create_campaign_invitation', {
+    const { error: forbiddenError } = (await player.client.rpc('create_campaign_invitation', {
       p_campaign_id: campaign!.id,
-    })
+    })) as RpcSingleResult<Invitation>
 
     expect(forbiddenError).not.toBeNull()
   })
 
   it('lets a player redeem a valid invitation code and become a member', async () => {
-    const { data: campaign } = await dm.client
+    const { data: campaign } = (await dm.client
       .rpc('create_campaign', { p_name: 'The Hollow Court' })
-      .single()
-    const { data: invitation } = await dm.client
+      .single()) as RpcSingleResult<Campaign>
+    const { data: invitation } = (await dm.client
       .rpc('create_campaign_invitation', { p_campaign_id: campaign!.id })
-      .single()
+      .single()) as RpcSingleResult<Invitation>
 
-    const { data: membership, error } = await player.client.rpc('redeem_campaign_invitation', {
+    const { data: membership, error } = (await player.client.rpc('redeem_campaign_invitation', {
       p_code: invitation!.code,
-    })
+    })) as RpcSingleResult<Membership>
 
     expect(error).toBeNull()
     expect(membership?.role).toBe('player')
@@ -92,17 +105,17 @@ describe('campaign foundation RPCs', () => {
   })
 
   it('rejects redeeming the same invitation twice by the same player', async () => {
-    const { data: campaign } = await dm.client
+    const { data: campaign } = (await dm.client
       .rpc('create_campaign', { p_name: 'Duskwatch Hold' })
-      .single()
-    const { data: invitation } = await dm.client
+      .single()) as RpcSingleResult<Campaign>
+    const { data: invitation } = (await dm.client
       .rpc('create_campaign_invitation', { p_campaign_id: campaign!.id })
-      .single()
+      .single()) as RpcSingleResult<Invitation>
 
     await player.client.rpc('redeem_campaign_invitation', { p_code: invitation!.code })
-    const { error } = await player.client.rpc('redeem_campaign_invitation', {
+    const { error } = (await player.client.rpc('redeem_campaign_invitation', {
       p_code: invitation!.code,
-    })
+    })) as RpcSingleResult<Membership>
 
     expect(error).not.toBeNull()
   })
