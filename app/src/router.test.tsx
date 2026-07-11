@@ -1,6 +1,7 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { RouterProvider, createMemoryRouter } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import type { BattleMap } from './battle-maps/api'
 import { routeConfig } from './router'
 
 vi.mock('./lib/supabaseClient', () => ({
@@ -18,6 +19,37 @@ vi.mock('./lib/supabaseClient', () => ({
       }),
     })),
   },
+}))
+
+const MAP_A: BattleMap = {
+  id: 'map-1',
+  campaign_id: 'campaign-1',
+  name: 'Map A',
+  created_by: 'u1',
+  created_at: 'now',
+  terrain: [{ id: 'fA', kind: 'wall', column: 1, row: 1, widthCells: 1, depthCells: 1, heightCells: 1 }],
+}
+
+const MAP_B: BattleMap = {
+  id: 'map-2',
+  campaign_id: 'campaign-1',
+  name: 'Map B',
+  created_by: 'u1',
+  created_at: 'now',
+  terrain: [
+    { id: 'fB', kind: 'platform', column: 2, row: 2, widthCells: 1, depthCells: 1, heightCells: 1 },
+  ],
+}
+
+vi.mock('./battle-maps/api', () => ({
+  getBattleMap: vi.fn((mapId: string) =>
+    Promise.resolve(mapId === 'map-1' ? MAP_A : mapId === 'map-2' ? MAP_B : null),
+  ),
+  setBattleMapTerrain: vi.fn(),
+}))
+
+vi.mock('./battle-map/BattleMapView', () => ({
+  BattleMapView: () => <div data-testid="battle-map-view" />,
 }))
 
 async function setAuthSession(session: unknown) {
@@ -70,5 +102,24 @@ describe('routeConfig', () => {
         options: { redirectTo: expect.stringContaining('/join/ABCD1234') },
       })
     })
+  })
+
+  it('remounts the battle map page with fresh state when navigating directly from one map to another', async () => {
+    const router = createMemoryRouter(routeConfig, {
+      initialEntries: ['/campaigns/campaign-1/maps/map-1'],
+    })
+    render(<RouterProvider router={router} />)
+
+    expect(await screen.findByRole('heading', { name: /map a/i })).toBeInTheDocument()
+    // TerrainEditorPanel is rendered for real (not mocked) here so its internal `features`
+    // state — seeded once from `map.terrain` via useState — is actually exercised. If the
+    // route didn't remount on mapId change, this state would carry over from Map A to Map B.
+    expect(screen.getByText(/wall/i, { selector: 'li' })).toBeInTheDocument()
+
+    await router.navigate('/campaigns/campaign-1/maps/map-2')
+
+    expect(await screen.findByRole('heading', { name: /map b/i })).toBeInTheDocument()
+    expect(screen.getByText(/platform/i, { selector: 'li' })).toBeInTheDocument()
+    expect(screen.queryByText(/wall/i, { selector: 'li' })).not.toBeInTheDocument()
   })
 })

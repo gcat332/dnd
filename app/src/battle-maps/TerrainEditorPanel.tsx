@@ -26,9 +26,9 @@ export function TerrainEditorPanel({ map, onTerrainChange }: TerrainEditorPanelP
   async function persist(next: TerrainFeature[]) {
     setError(null)
     try {
-      await setBattleMapTerrain(map.id, next)
-      setFeatures(next)
-      onTerrainChange(next)
+      const saved = await setBattleMapTerrain(map.id, next)
+      setFeatures(saved.terrain)
+      onTerrainChange(saved.terrain)
     } catch (err) {
       setError((err as Error).message)
     }

@@ -39,8 +39,13 @@ describe('TerrainEditorPanel', () => {
     expect(screen.getByRole('button', { name: /remove/i })).toBeInTheDocument()
   })
 
-  it('adds a feature, persists via setBattleMapTerrain, and reports the new list up', async () => {
-    vi.mocked(setBattleMapTerrain).mockResolvedValue({ ...MAP, terrain: [WALL] })
+  it('adds a feature, persists via setBattleMapTerrain, and adopts the server-returned terrain as the new state', async () => {
+    // The RPC's returned terrain is server-normalized (parsed/capped by parseTerrainFeatures) and
+    // may differ from the optimistic local array that was sent — e.g. a different id assigned by
+    // the server. Use a distinct id here ('server-1') so the assertions below can only pass if
+    // `persist` adopts the *returned* map's terrain rather than the optimistic `next` array.
+    const savedFeature = { ...WALL, id: 'server-1', column: 100, row: 100, widthCells: 2, depthCells: 2 }
+    vi.mocked(setBattleMapTerrain).mockResolvedValue({ ...MAP, terrain: [savedFeature] })
     const onTerrainChange = vi.fn()
     render(<TerrainEditorPanel map={{ ...MAP, terrain: [] }} onTerrainChange={onTerrainChange} />)
 
@@ -52,7 +57,10 @@ describe('TerrainEditorPanel', () => {
     fireEvent.click(screen.getByRole('button', { name: /add feature/i }))
 
     await waitFor(() => expect(setBattleMapTerrain).toHaveBeenCalledWith('map-1', expect.any(Array)))
-    expect(onTerrainChange).toHaveBeenCalled()
+    expect(onTerrainChange).toHaveBeenCalledWith([savedFeature])
+    // The rendered list reflects the server-returned feature (id "server-1"), proving local
+    // state was set from the RPC's response and not the optimistic client-generated array.
+    expect(screen.getByText(/wall/i, { selector: 'li' })).toBeInTheDocument()
   })
 
   it('shows an error when the save fails', async () => {
