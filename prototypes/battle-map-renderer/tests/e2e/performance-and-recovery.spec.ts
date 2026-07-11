@@ -57,13 +57,27 @@ test('profiles 200 objects, applies low quality, and recovers the committed scen
   test.setTimeout(60_000)
   await page.goto('/?stress=1')
   const diagnostics = page.getByTestId('scene-performance-diagnostics')
+  const chunkDiagnostics = page.getByTestId('chunk-diagnostics')
   const canvas = page.getByTestId('battle-map-canvas')
   const expectedHighDpr = await page.evaluate(() => Math.min(window.devicePixelRatio, 2))
 
   await expect(diagnostics).toHaveAttribute('data-object-count', '200')
+  await expect(chunkDiagnostics).toHaveAttribute('data-center-chunk', '3:3')
+  await expect(chunkDiagnostics).toHaveAttribute('data-visible-chunks', /(?:^|,)3:3(?:,|$)/)
   await expect(diagnostics).toHaveAttribute('data-maximum-class-detail-texture-count', '1', {
     timeout: 15_000,
   })
+  await expect(diagnostics).toHaveAttribute(
+    'data-maximum-class-texture-render',
+    JSON.stringify({
+      address: { column: 3, row: 3 },
+      sourceWidth: 2048,
+      sourceHeight: 2048,
+      rendered: true,
+      uploaded: true,
+    }),
+    { timeout: 15_000 },
+  )
   await expect(page.getByTestId('effects-animation-diagnostics')).toHaveAttribute(
     'data-active-animation-count',
     /[1-9]\d*/,

@@ -3,7 +3,7 @@ import { beforeEach, expect, it } from 'vitest'
 import type { AreaTemplate } from '../domain/effects'
 import type { VisibilityGrid } from '../domain/visibility'
 import { useBattleMapView } from '../state/useBattleMapView'
-import { BattleMapScene } from './BattleMapScene'
+import { BattleMapScene, sceneSelection } from './BattleMapScene'
 import type { VisualLight } from './LightLayer'
 
 const VISIBILITY: VisibilityGrid = {
@@ -31,6 +31,14 @@ const TEMPLATE: AreaTemplate = {
 
 beforeEach(() => {
   useBattleMapView.setState(useBattleMapView.getInitialState(), true)
+})
+
+it('selects the detail chunk containing the camera center for the maximum-class probe', () => {
+  const selection = sceneSelection({ x: 100, z: 100 }, 80)
+
+  expect(selection.visibleChunks[0]).toEqual({ column: 0, row: 0 })
+  expect(selection.centerChunk).toEqual({ column: 3, row: 3 })
+  expect(selection.visibleChunks).toContainEqual(selection.centerChunk)
 })
 
 it('builds overview map and visibility layers', async () => {

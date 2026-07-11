@@ -15,6 +15,7 @@ import { useBattleMapView } from './state/useBattleMapView'
 import { BattleMapScene, useSceneSelection } from './scene/BattleMapScene'
 import type { VisualLight } from './scene/LightLayer'
 import { chunkAddressKey } from './scene/MapSurface'
+import type { MaximumClassTextureRender } from './scene/ChunkSurface'
 import {
   removeCompletedRemoteTokenAnimation,
   type RemoteTokenAnimation,
@@ -272,7 +273,7 @@ type ChunkDiagnosticsProps = {
 }
 
 function ChunkDiagnostics({ cameraReady }: ChunkDiagnosticsProps) {
-  const { mode, visibleChunks } = useSceneSelection()
+  const { mode, visibleChunks, centerChunk } = useSceneSelection()
   if (!cameraReady) return null
   return (
     <output
@@ -280,6 +281,7 @@ function ChunkDiagnostics({ cameraReady }: ChunkDiagnosticsProps) {
       data-testid="chunk-diagnostics"
       data-mode={mode}
       data-visible-chunks={visibleChunks.map(chunkAddressKey).join(',')}
+      data-center-chunk={centerChunk ? chunkAddressKey(centerChunk) : ''}
     />
   )
 }
@@ -400,6 +402,8 @@ export function BattleMapCanvas() {
   )
   const [quality, setQuality] = useState<SceneQuality>('high')
   const [metrics, setMetrics] = useState<SceneMetrics>(EMPTY_METRICS)
+  const [maximumClassTextureRender, setMaximumClassTextureRender] =
+    useState<MaximumClassTextureRender | null>(null)
   const [contextLost, setContextLost] = useState(false)
   const [rendererGeneration, setRendererGeneration] = useState(0)
   const [animationDiagnostics, setAnimationDiagnostics] = useState<{
@@ -577,6 +581,7 @@ export function BattleMapCanvas() {
           qualitySettings={qualitySettings}
           stressWalls={stressMode ? stressScene.walls : []}
           stressEffects={stressMode}
+          onMaximumClassTextureRender={setMaximumClassTextureRender}
         />
         </Canvas>
         {contextLost ? (
@@ -612,6 +617,9 @@ export function BattleMapCanvas() {
         data-output-processing={qualitySettings.outputProcessing}
         data-object-count={tokens.length}
         data-maximum-class-detail-texture-count={metrics.maximumClassDetailTextures}
+        data-maximum-class-texture-render={
+          maximumClassTextureRender ? JSON.stringify(maximumClassTextureRender) : ''
+        }
         data-token-checksum={tokenChecksum(tokens)}
         data-interaction-token-point={stressTokenPoint ? JSON.stringify(stressTokenPoint) : ''}
         data-stress-token-point={stressMode && stressTokenPoint ? JSON.stringify(stressTokenPoint) : ''}

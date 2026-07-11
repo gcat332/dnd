@@ -45,7 +45,7 @@ it('retains overlapping chunk resources and disposes chunks that leave the selec
   await renderer.unmount()
 })
 
-it('loads exactly one visible stress chunk with a 2048px-class texture', async () => {
+it('loads the designated visible camera-center chunk with a 2048px-class texture', async () => {
   const loadTexture = vi.fn(async (_address: ChunkAddress, textureSize: number) => {
     const texture = new Texture()
     texture.image = { width: textureSize, height: textureSize }
@@ -60,12 +60,12 @@ it('loads exactly one visible stress chunk with a 2048px-class texture', async (
     <MapSurface
       mode="detail"
       visibleChunks={visibleChunks}
-      maximumClassTextureCount={1}
+      maximumClassTextureAddress={{ column: 3, row: 3 }}
       loadTexture={loadTexture}
     />,
   )
 
   await vi.waitFor(() => expect(loadTexture).toHaveBeenCalledTimes(3))
-  expect(loadTexture.mock.calls.map(([, textureSize]) => textureSize)).toEqual([2048, 64, 64])
+  expect(loadTexture.mock.calls.map(([, textureSize]) => textureSize)).toEqual([64, 2048, 64])
   await renderer.unmount()
 })

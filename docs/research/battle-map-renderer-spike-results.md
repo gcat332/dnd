@@ -6,7 +6,7 @@ Date: 2026-07-11
 
 The Three.js/React Three Fiber spike passes its functional browser gates but does not pass the measured performance release gates in this environment. The deterministic stress scene contains exactly 200 interactive Token/prop records, representative walls, exactly four total shadow-casting lights (one directional and three point lights), active fog, 24 continuously reissued Token animations, and a concurrent animated particle effect. Adaptive quality settled on `low` for both measured profiles.
 
-The desktop 60 FPS target failed under headless SwiftShader at 13.44 FPS. The tablet 30 FPS target failed in Playwright viewport/DPR emulation at 15.69 FPS. These are CI diagnostics collected with a software GPU, not physical-device results. The tablet result is emulated and is not a real-device claim. Physical tablet validation at 30 FPS or better remains an unpassed release gate.
+The desktop 60 FPS target failed under headless SwiftShader at 16.61 FPS. The tablet 30 FPS target failed in Playwright viewport/DPR emulation at 20.01 FPS. These are CI diagnostics collected with a software GPU, not physical-device results. The tablet result is emulated and is not a real-device claim. Physical tablet validation at 30 FPS or better remains an unpassed release gate.
 
 ## Environment
 
@@ -23,10 +23,12 @@ Measurements were read after 16 seconds of adaptive-quality settling, then five 
 
 | CI diagnostic profile | Quality | Average FPS | P95 frame time | Draw calls | Triangles | Textures | Active 2048px detail textures | Scene-resource lower bound | P95 chunk latency | P95 pointer-to-rendered-frame latency |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| Headless desktop | low | 13.44 | 79.50 ms | 249 | 26,082 | 31 | 1 | 17,407,988 bytes (16.602 MiB) | 13.90 ms | 1.10 ms |
-| Tablet emulation | low | 15.69 | 69.30 ms | 238 | 24,674 | 31 | 1 | 17,216,500 bytes (16.419 MiB) | 11.00 ms | 1.00 ms |
+| Headless desktop | low | 16.61 | 65.40 ms | 249 | 26,082 | 31 | 1 | 17,407,988 bytes (16.602 MiB) | 273.00 ms | 2.70 ms |
+| Tablet emulation | low | 20.01 | 54.70 ms | 238 | 24,674 | 30 | 1 | 17,216,500 bytes (16.419 MiB) | 259.50 ms | 2.50 ms |
 
-The stress/performance path assigns exactly one currently visible detail Render Chunk a maximum-class 2048 x 2048 RGBA `DataTexture`; all other visible detail chunks retain the representative 64 x 64 texture. The first address in the deterministic visible-chunk selection receives the maximum-class texture, so the probe includes its source allocation, upload, and load latency without unrealistically expanding every prefetched chunk to 2048px. Diagnostics traverse scene-referenced textures and confirmed exactly one active 2048px detail texture in both profiles.
+The stress/performance path assigns exactly one currently visible detail Render Chunk a maximum-class 2048 x 2048 RGBA `DataTexture`; all other visible detail chunks retain the representative 64 x 64 texture. The selected address is the chunk containing the current camera center, deterministically `3:3` in both profiles, rather than a possibly offscreen prefetch address. A `ChunkSurface.onAfterRender` callback reported address `3:3`, source dimensions 2048 x 2048, `rendered: true`, and `uploaded: true` before metrics capture in both runs. This proves the texture was attached and consumed by a completed Three.js draw, whose render path uploads a dirty texture before drawing it; it does not claim a separately timed GPU-upload duration.
+
+Diagnostics traverse scene-referenced textures and confirmed exactly one active 2048px detail texture in both profiles. P95 chunk latency measures loader start through source creation and attachment to the `ChunkSurface`; the separate `onAfterRender` evidence proves subsequent renderer consumption. This keeps the loading, resource lower-bound, and renderer-upload evidence tied to the maximum texture class without unrealistically expanding every prefetched chunk to 2048px.
 
 The scene-resource value is a defensible lower-bound estimate, not a GPU allocation reading. It traverses the rendered scene, deduplicates `BufferGeometry` objects and their unique attribute/index array buffers, and adds their actual byte lengths. It also deduplicates scene-referenced textures and uses source-data byte lengths when present, otherwise source width x height x actual format channel count x component-type byte width. It excludes driver alignment, uploaded mip levels, shadow/render targets, shader programs, framebuffer storage, and driver bookkeeping, so it must not be interpreted as total GPU memory or a memory PASS result.
 
@@ -52,8 +54,8 @@ The pointer metric measures time from the canvas `pointerdown` handler to the fi
 | Native and forced renderer recovery in three browsers | PASS |
 | Responsive non-overlap/nonblank canvas in three browsers | PASS |
 | Complete Playwright matrix | PASS: 30/30 |
-| Desktop 60 FPS | FAIL in headless SwiftShader CI diagnostics: 13.44 FPS |
-| Tablet 30 FPS | FAIL in Playwright emulation CI diagnostics: 15.69 FPS |
+| Desktop 60 FPS | FAIL in headless SwiftShader CI diagnostics: 16.61 FPS |
+| Tablet 30 FPS | FAIL in Playwright emulation CI diagnostics: 20.01 FPS |
 | Physical tablet 30 FPS | NOT RUN; unpassed release gate |
 
 ## Reproduction And Warnings

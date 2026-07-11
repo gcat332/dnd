@@ -1,7 +1,7 @@
 import { useFrame, useThree } from '@react-three/fiber'
 import { useEffect, useMemo, useRef } from 'react'
 import type { Group } from 'three'
-import type { ChunkAddress } from '../domain/chunks'
+import { chunkAddressForCell, type ChunkAddress } from '../domain/chunks'
 import type { AreaTemplate } from '../domain/effects'
 import { MAP_SIZE_CELLS, type WorldPoint } from '../domain/grid'
 import type { MoveIntent, TokenRenderState } from '../domain/tokens'
@@ -23,12 +23,14 @@ import { ProceduralGrid } from './ProceduralGrid'
 import { TokenLayer } from './TokenLayer'
 import { TargetingLayer } from './TargetingLayer'
 import { VisibilityLayer } from './VisibilityLayer'
+import type { MaximumClassTextureRender } from './ChunkSurface'
 
 const CELL_TEXTURE_PIXELS = 64
 
 export type SceneSelection = Readonly<{
   mode: MapDetailMode
   visibleChunks: readonly ChunkAddress[]
+  centerChunk: ChunkAddress | null
 }>
 
 export function sceneSelection(cameraCenter: { x: number; z: number }, visibleCellSpan: number): SceneSelection {
@@ -40,9 +42,15 @@ export function sceneSelection(cameraCenter: { x: number; z: number }, visibleCe
     maxZ: Math.min(MAP_SIZE_CELLS, cameraCenter.z + halfSpan),
   }
   const mode = mapDetailMode(visibleCellSpan)
+  const centerCell = {
+    column: Math.min(MAP_SIZE_CELLS - 1, Math.max(0, Math.floor(cameraCenter.x))),
+    row: Math.min(MAP_SIZE_CELLS - 1, Math.max(0, Math.floor(cameraCenter.z))),
+  }
   return {
     mode,
     visibleChunks: mode === 'detail' ? visibleChunkAddresses(bounds, CELL_TEXTURE_PIXELS) : [],
+    centerChunk:
+      mode === 'detail' ? chunkAddressForCell(centerCell, CELL_TEXTURE_PIXELS) : null,
   }
 }
 
@@ -67,6 +75,7 @@ type BattleMapSceneProps = {
   qualitySettings?: SceneQualitySettings
   stressWalls?: readonly StressWall[]
   stressEffects?: boolean
+  onMaximumClassTextureRender?: (diagnostic: MaximumClassTextureRender) => void
 }
 
 const NO_TOKENS: readonly TokenRenderState[] = []
@@ -118,9 +127,10 @@ export function BattleMapScene({
   qualitySettings = DEFAULT_QUALITY,
   stressWalls = [],
   stressEffects = false,
+  onMaximumClassTextureRender,
 }: BattleMapSceneProps = {}) {
   const invalidate = useThree((state) => state.invalidate)
-  const { mode, visibleChunks } = useSceneSelection()
+  const { mode, visibleChunks, centerChunk } = useSceneSelection()
   const visibleChunkKeys = visibleChunks.map(chunkAddressKey).join(',')
 
   useEffect(() => {
@@ -142,7 +152,8 @@ export function BattleMapScene({
       <MapSurface
         mode={mode}
         visibleChunks={visibleChunks}
-        maximumClassTextureCount={stressEffects ? 1 : 0}
+        maximumClassTextureAddress={stressEffects ? centerChunk : null}
+        onMaximumClassTextureRender={onMaximumClassTextureRender}
       />
       <ProceduralGrid />
       <DimensionalTerrain stressWalls={stressWalls} />

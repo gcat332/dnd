@@ -1,8 +1,12 @@
 import { useThree } from '@react-three/fiber'
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { DoubleSide, PlaneGeometry, type MeshStandardMaterial, type Texture } from 'three'
 import { createChunkTexture } from '../fixtures/createChunkTexture'
-import { chunkBounds, type ChunkAddress } from '../domain/chunks'
+import {
+  MAX_CHUNK_TEXTURE_PIXELS,
+  chunkBounds,
+  type ChunkAddress,
+} from '../domain/chunks'
 import { loadChunkWithRetry } from './chunkLoader'
 
 const CELL_TEXTURE_PIXELS = 64
@@ -10,11 +14,19 @@ export const STANDARD_DETAIL_TEXTURE_SIZE = 64
 const UNIT_PLANE = new PlaneGeometry(1, 1)
 
 export type ChunkTextureLoader = (address: ChunkAddress, textureSize: number) => Promise<Texture>
+export type MaximumClassTextureRender = Readonly<{
+  address: ChunkAddress
+  sourceWidth: number
+  sourceHeight: number
+  rendered: true
+  uploaded: true
+}>
 
 type ChunkSurfaceProps = {
   address: ChunkAddress
   textureSize?: number
   loadTexture?: ChunkTextureLoader
+  onMaximumClassTextureRender?: (diagnostic: MaximumClassTextureRender) => void
 }
 
 type ChunkLoadState = 'loading' | 'ready' | 'failed'
@@ -26,9 +38,11 @@ export function ChunkSurface({
   address,
   textureSize = STANDARD_DETAIL_TEXTURE_SIZE,
   loadTexture = loadFixtureTexture,
+  onMaximumClassTextureRender,
 }: ChunkSurfaceProps) {
   const invalidate = useThree((state) => state.invalidate)
   const material = useRef<MeshStandardMaterial>(null)
+  const lastReportedTexture = useRef<Texture | null>(null)
   const [texture, setTexture] = useState<Texture | null>(null)
   const [loadState, setLoadState] = useState<ChunkLoadState>('loading')
   const bounds = chunkBounds(address, CELL_TEXTURE_PIXELS)
@@ -78,6 +92,27 @@ export function ChunkSurface({
     invalidate()
   }, [invalidate, texture])
 
+  const recordMaximumClassRender = useCallback(() => {
+    if (
+      textureSize !== MAX_CHUNK_TEXTURE_PIXELS ||
+      !texture ||
+      lastReportedTexture.current === texture ||
+      !onMaximumClassTextureRender
+    ) {
+      return
+    }
+    const image = texture.image as { width?: unknown; height?: unknown } | undefined
+    if (typeof image?.width !== 'number' || typeof image.height !== 'number') return
+    lastReportedTexture.current = texture
+    onMaximumClassTextureRender({
+      address,
+      sourceWidth: image.width,
+      sourceHeight: image.height,
+      rendered: true,
+      uploaded: true,
+    })
+  }, [address, onMaximumClassTextureRender, texture, textureSize])
+
   return (
     <mesh
       name={`chunk-surface-${address.column}:${address.row}`}
@@ -90,6 +125,7 @@ export function ChunkSurface({
       rotation={[-Math.PI / 2, 0, 0]}
       scale={[width, depth, 1]}
       receiveShadow
+      onAfterRender={recordMaximumClassRender}
     >
       <primitive object={UNIT_PLANE} attach="geometry" />
       <meshStandardMaterial

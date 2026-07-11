@@ -8,6 +8,7 @@ import {
   ChunkSurface,
   STANDARD_DETAIL_TEXTURE_SIZE,
   type ChunkTextureLoader,
+  type MaximumClassTextureRender,
 } from './ChunkSurface'
 
 const OVERVIEW_PLANE = new PlaneGeometry(1, 1)
@@ -20,29 +21,33 @@ export function chunkAddressKey(address: ChunkAddress): string {
 type MapSurfaceProps = {
   mode: MapDetailMode
   visibleChunks: readonly ChunkAddress[]
-  maximumClassTextureCount?: number
+  maximumClassTextureAddress?: ChunkAddress | null
   loadTexture?: ChunkTextureLoader
+  onMaximumClassTextureRender?: (diagnostic: MaximumClassTextureRender) => void
 }
 
 export function MapSurface({
   mode,
   visibleChunks,
-  maximumClassTextureCount = 0,
+  maximumClassTextureAddress = null,
   loadTexture,
+  onMaximumClassTextureRender,
 }: MapSurfaceProps) {
   if (mode === 'detail') {
     return (
       <group name="detail-chunk-surfaces">
-        {visibleChunks.map((address, index) => (
+        {visibleChunks.map((address) => (
           <ChunkSurface
             key={chunkAddressKey(address)}
             address={address}
             textureSize={
-              index < maximumClassTextureCount
+              maximumClassTextureAddress?.column === address.column &&
+              maximumClassTextureAddress.row === address.row
                 ? MAX_CHUNK_TEXTURE_PIXELS
                 : STANDARD_DETAIL_TEXTURE_SIZE
             }
             loadTexture={loadTexture}
+            onMaximumClassTextureRender={onMaximumClassTextureRender}
           />
         ))}
       </group>
