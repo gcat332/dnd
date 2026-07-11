@@ -2,6 +2,7 @@ import { MapControls } from '@react-three/drei'
 import { Canvas } from '@react-three/fiber'
 import { useRef } from 'react'
 import type { MapControls as MapControlsImpl } from 'three-stdlib'
+import type { TerrainFeature } from '../battle-maps/terrain'
 import { BattleMapScene } from './scene/BattleMapScene'
 
 export function BattleMapCameraControls() {
@@ -20,7 +21,11 @@ export function BattleMapCameraControls() {
   )
 }
 
-export function BattleMapView() {
+type BattleMapViewProps = {
+  terrain?: readonly TerrainFeature[]
+}
+
+export function BattleMapView({ terrain = [] }: BattleMapViewProps = {}) {
   return (
     <div className="battle-map-view">
       <Canvas
@@ -31,7 +36,7 @@ export function BattleMapView() {
       >
         <color attach="background" args={['#171a1f']} />
         <BattleMapCameraControls />
-        <BattleMapScene />
+        <BattleMapScene terrainFeatures={terrain} />
       </Canvas>
     </div>
   )

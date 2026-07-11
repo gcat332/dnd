@@ -1,6 +1,7 @@
 import { useFrame, useThree } from '@react-three/fiber'
 import { useEffect, useMemo, useRef } from 'react'
 import type { Group } from 'three'
+import type { TerrainFeature } from '../../battle-maps/terrain'
 import { chunkAddressForCell, type ChunkAddress } from '../domain/chunks'
 import type { AreaTemplate } from '../domain/effects'
 import { MAP_SIZE_CELLS, type WorldPoint } from '../domain/grid'
@@ -73,6 +74,7 @@ type BattleMapSceneProps = {
   onAnimatedTokenWorldPoint?: (tokenId: string, point: WorldPoint) => void
   onRemoteTokenAnimationComplete?: (animation: RemoteTokenAnimation) => void
   qualitySettings?: SceneQualitySettings
+  terrainFeatures?: readonly TerrainFeature[]
   stressWalls?: readonly StressWall[]
   stressEffects?: boolean
   onMaximumClassTextureRender?: (diagnostic: MaximumClassTextureRender) => void
@@ -80,6 +82,7 @@ type BattleMapSceneProps = {
 
 const NO_TOKENS: readonly TokenRenderState[] = []
 const NO_LIGHTS: readonly VisualLight[] = []
+const NO_TERRAIN: readonly TerrainFeature[] = []
 const ALL_VISIBLE: VisibilityGrid = {
   width: MAP_SIZE_CELLS,
   height: MAP_SIZE_CELLS,
@@ -125,6 +128,7 @@ export function BattleMapScene({
   onAnimatedTokenWorldPoint,
   onRemoteTokenAnimationComplete,
   qualitySettings = DEFAULT_QUALITY,
+  terrainFeatures = NO_TERRAIN,
   stressWalls = [],
   stressEffects = false,
   onMaximumClassTextureRender,
@@ -156,7 +160,7 @@ export function BattleMapScene({
         onMaximumClassTextureRender={onMaximumClassTextureRender}
       />
       <ProceduralGrid />
-      <DimensionalTerrain stressWalls={stressWalls} />
+      <DimensionalTerrain features={terrainFeatures} stressWalls={stressWalls} />
       {stressEffects ? <StressEffect particleScale={qualitySettings.particleScale} /> : null}
       <TargetingLayer template={targetTemplate} />
       <TokenLayer

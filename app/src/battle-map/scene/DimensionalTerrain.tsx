@@ -1,11 +1,16 @@
 import { BoxGeometry, MeshStandardMaterial } from 'three'
+import { terrainFeatureBox, type TerrainFeature, type TerrainKind } from '../../battle-maps/terrain'
 import type { StressWall } from '../fixtures/createStressScene'
 
 const BOX_GEOMETRY = new BoxGeometry(1, 1, 1)
-const STONE_MATERIAL = new MeshStandardMaterial({ color: '#73777b', roughness: 0.88 })
-const DOOR_MATERIAL = new MeshStandardMaterial({ color: '#713f2c', roughness: 0.82 })
-const PLATFORM_MATERIAL = new MeshStandardMaterial({ color: '#596d50', roughness: 0.94 })
-const MARKER_MATERIAL = new MeshStandardMaterial({ color: '#d6b759', roughness: 0.65 })
+
+const MATERIALS: Record<TerrainKind, MeshStandardMaterial> = {
+  wall: new MeshStandardMaterial({ color: '#73777b', roughness: 0.88 }),
+  platform: new MeshStandardMaterial({ color: '#596d50', roughness: 0.94 }),
+  pillar: new MeshStandardMaterial({ color: '#d6b759', roughness: 0.65 }),
+}
+
+const STONE_MATERIAL = MATERIALS.wall
 
 type TerrainBoxProps = {
   name: string
@@ -23,25 +28,26 @@ function TerrainBox({ name, position, scale, material }: TerrainBoxProps) {
   )
 }
 
-type DimensionalTerrainProps = Readonly<{ stressWalls?: readonly StressWall[] }>
+type DimensionalTerrainProps = Readonly<{
+  features?: readonly TerrainFeature[]
+  stressWalls?: readonly StressWall[]
+}>
 
-export function DimensionalTerrain({ stressWalls = [] }: DimensionalTerrainProps) {
+export function DimensionalTerrain({ features = [], stressWalls = [] }: DimensionalTerrainProps) {
   return (
     <group name="dimensional-terrain" dispose={null}>
-      <TerrainBox name="wall" position={[99, 1.5, 94]} scale={[18, 3, 1]} material={STONE_MATERIAL} />
-      <TerrainBox name="door" position={[99, 1.25, 93.45]} scale={[3, 2.5, 0.3]} material={DOOR_MATERIAL} />
-      <TerrainBox
-        name="raised-platform"
-        position={[110, 1, 106]}
-        scale={[11, 2, 10]}
-        material={PLATFORM_MATERIAL}
-      />
-      <TerrainBox
-        name="elevated-marker"
-        position={[110, 4, 106]}
-        scale={[1.1, 4, 1.1]}
-        material={MARKER_MATERIAL}
-      />
+      {features.map((feature) => {
+        const box = terrainFeatureBox(feature)
+        return (
+          <TerrainBox
+            key={feature.id}
+            name={`terrain-${feature.id}`}
+            position={box.position}
+            scale={box.scale}
+            material={MATERIALS[feature.kind]}
+          />
+        )
+      })}
       {stressWalls.map((wall) => (
         <TerrainBox
           key={wall.id}
