@@ -122,6 +122,10 @@ _Avoid_: Flow-only combat, manual combat tracker
 The rule behavior where each campaign can decide which rules are hard-blocked, warned with override, or treated as advisory.
 _Avoid_: Soft-only enforcement, one-size-fits-all rules
 
+**Enforcement Preset**:
+A named starting configuration (Strict, Balanced, Narrative) that sets Hard/Warn/Advisory defaults across tactical rule categories for a campaign; the DM can override any category afterward.
+_Avoid_: Difficulty setting, single global toggle
+
 **Rules Object**:
 A single piece of rules-bearing content — a spell, ability, condition, monster, item, or similar — stored and reused within one campaign, whether shipped as starter content, DM homebrew, or AI-generated.
 _Avoid_: Content record, database row

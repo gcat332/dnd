@@ -50,3 +50,12 @@ When you start a task: add an entry with what you're touching (issue #, files, b
 **Status**: done. Decisions: DMs can edit spell/ability/monster/item/encounter/trait/resource Rules Objects; `damage_type`/`condition` stay fixed system taxonomy for Tactical Rules Automation (#6) to reason about. Mechanically-relevant fields use the shared Procedural Ability Template schema (same one AI generation will use, #8) with validation; flavor fields are freeform. No object-versioning UI in V1 — Session Log snapshots relevant numeric fields at time of use instead, so edits never rewrite history.
 **Touched**: issue #7 (resolution comment + closed), issue #1 map (Decisions-so-far, standing decisions, ticket checkbox, graduated fog, added an Out-of-scope line for version-history UI), `CONTEXT.md` (`Procedural Ability Template` reworded to cover both DM-authored and AI-generated abilities). Committed on `main`.
 **Handoff**: #8 "Design AI-assisted campaign and ability generation" is now fully unblocked (was waiting on #4, #5, #7 — all closed). #6 "Design Tactical Rules Automation enforcement" and #9 "Design realtime session state and autosave" remain open/unblocked too. Three tickets left total.
+
+---
+
+## 2026-07-11 — Claude Code (6)
+
+**Task**: GitHub #6 "Design Tactical Rules Automation enforcement" (Wayfinder ticket, child of map #1, `wayfinder:grilling`)
+**Status**: done. Decisions: V1 automates grid movement/range, targeting, area effects, resistance/vulnerability, conditions, combat timing; line of sight and concentration deferred. Enforcement Preset (Strict/Balanced/Narrative) sets Hard/Warn/Advisory per rule category at campaign creation, DM overrides per category after. Hard = reject outright, no in-context override; Warn = DM-only confirm dialog, always logs `rule_warning` (+`override` if allowed); Advisory = passive hint, unlogged.
+**Touched**: issue #6 (resolution comment + closed), issue #1 map (Decisions-so-far, standing decisions, ticket checkbox, graduated fog, new Out-of-scope line for LOS/concentration), `CONTEXT.md` (added `Enforcement Preset`). Committed on `main`.
+**Handoff**: two tickets left — #8 "Design AI-assisted campaign and ability generation" (fully unblocked) and #9 "Design realtime session state and autosave" (fully unblocked). Either can go next; no more dependency ordering constraints between them.
