@@ -19,7 +19,7 @@ export function MovementPreview({ from, to }: MovementPreviewProps) {
   const path = straightGridPath(from, to)
 
   return (
-    <group name="movement-preview" dispose={null}>
+    <group name="movement-preview">
       {path.map((cell) => {
         const point = gridToWorld(cell)
         return (
@@ -30,8 +30,8 @@ export function MovementPreview({ from, to }: MovementPreviewProps) {
             scale={[0.24, 0.05, 0.24]}
             renderOrder={3}
           >
-            <primitive object={PREVIEW_GEOMETRY} attach="geometry" />
-            <primitive object={PREVIEW_MATERIAL} attach="material" />
+            <primitive object={PREVIEW_GEOMETRY} attach="geometry" dispose={null} />
+            <primitive object={PREVIEW_MATERIAL} attach="material" dispose={null} />
           </mesh>
         )
       })}

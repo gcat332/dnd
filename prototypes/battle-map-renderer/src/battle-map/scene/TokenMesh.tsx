@@ -1,5 +1,5 @@
 import { useThree, type ThreeEvent } from '@react-three/fiber'
-import { useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import { CylinderGeometry, Plane, Vector3 } from 'three'
 import { gridToWorld, worldToGrid } from '../domain/grid'
 import { straightGridPath } from '../domain/movement'
@@ -14,6 +14,11 @@ const DRAG_POINT = new Vector3()
 type TokenMeshProps = {
   token: TokenRenderState
   onMoveIntent: (intent: MoveIntent) => void
+}
+
+type ActivePointer = {
+  pointerId: number
+  target: HTMLElement
 }
 
 function stopMapInteraction(event: ThreeEvent<PointerEvent>): void {
@@ -45,20 +50,39 @@ export function TokenMesh({ token, onMoveIntent }: TokenMeshProps) {
   const selectToken = useBattleMapView((state) => state.selectToken)
   const previewTokenMove = useBattleMapView((state) => state.previewTokenMove)
   const clearDragPreview = useBattleMapView((state) => state.clearDragPreview)
-  const dragPointer = useRef<number | null>(null)
+  const activePointer = useRef<ActivePointer | null>(null)
   const displayCell = dragPreview?.cell ?? token.cell
   const point = gridToWorld(displayCell)
 
+  useEffect(
+    () => () => {
+      const active = activePointer.current
+      activePointer.current = null
+      if (active) {
+        try {
+          active.target.releasePointerCapture(active.pointerId)
+        } catch {
+          // Pointer capture may already have been released by the browser.
+        }
+      }
+      const preview = useBattleMapView.getState().dragPreview
+      if (preview?.tokenId === token.id) useBattleMapView.getState().clearDragPreview()
+      invalidate()
+    },
+    [invalidate, token.id],
+  )
+
   const handlePointerDown = (event: ThreeEvent<PointerEvent>) => {
     stopMapInteraction(event)
-    dragPointer.current = event.pointerId
     selectToken(token.id)
-    pointerCaptureTarget(event).setPointerCapture(event.pointerId)
+    const target = pointerCaptureTarget(event)
+    target.setPointerCapture(event.pointerId)
+    activePointer.current = { pointerId: event.pointerId, target }
     invalidate()
   }
 
   const handlePointerMove = (event: ThreeEvent<PointerEvent>) => {
-    if (dragPointer.current !== event.pointerId) return
+    if (activePointer.current?.pointerId !== event.pointerId) return
     stopMapInteraction(event)
     const cell = cellUnderPointer(event)
     if (!cell) return
@@ -67,12 +91,13 @@ export function TokenMesh({ token, onMoveIntent }: TokenMeshProps) {
   }
 
   const handlePointerUp = (event: ThreeEvent<PointerEvent>) => {
-    if (dragPointer.current !== event.pointerId) return
+    const active = activePointer.current
+    if (active?.pointerId !== event.pointerId) return
     stopMapInteraction(event)
     const preview = useBattleMapView.getState().dragPreview
     const to = preview?.tokenId === token.id ? preview.cell : token.cell
-    dragPointer.current = null
-    pointerCaptureTarget(event).releasePointerCapture(event.pointerId)
+    activePointer.current = null
+    active.target.releasePointerCapture(event.pointerId)
     onMoveIntent({
       tokenId: token.id,
       from: token.cell,
@@ -84,9 +109,9 @@ export function TokenMesh({ token, onMoveIntent }: TokenMeshProps) {
   }
 
   const handlePointerCancel = (event: ThreeEvent<PointerEvent>) => {
-    if (dragPointer.current !== event.pointerId) return
+    if (activePointer.current?.pointerId !== event.pointerId) return
     stopMapInteraction(event)
-    dragPointer.current = null
+    activePointer.current = null
     clearDragPreview()
     invalidate()
   }
@@ -101,9 +126,10 @@ export function TokenMesh({ token, onMoveIntent }: TokenMeshProps) {
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
       onPointerCancel={handlePointerCancel}
+      onLostPointerCapture={handlePointerCancel}
       userData={{ tokenId: token.id, label: token.label }}
     >
-      <primitive object={TOKEN_GEOMETRY} attach="geometry" />
+      <primitive object={TOKEN_GEOMETRY} attach="geometry" dispose={null} />
       <meshStandardMaterial
         color={token.color}
         roughness={0.52}

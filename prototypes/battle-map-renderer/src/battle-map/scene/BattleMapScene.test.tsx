@@ -9,6 +9,6 @@ it('builds the layered Battle Map scene graph', async () => {
   expect(renderer.scene.findByProps({ name: 'overview-surface' }).type).toBe('Mesh')
   expect(renderer.scene.findByProps({ name: 'procedural-grid' }).type).toBe('Mesh')
   expect(renderer.scene.findByProps({ name: 'dimensional-terrain' }).type).toBe('Group')
-  expect(renderer.scene.findByProps({ name: 'token-layer' }).props.dispose).toBeNull()
+  expect(renderer.scene.findByProps({ name: 'token-layer' }).type).toBe('Group')
   await renderer.unmount()
 })

@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import type { MoveIntent, TokenRenderState } from '../domain/tokens'
 import { useBattleMapView } from '../state/useBattleMapView'
 import { MovementPreview } from './MovementPreview'
@@ -10,13 +11,20 @@ export type TokenLayerProps = {
 
 export function TokenLayer({ tokens, onMoveIntent }: TokenLayerProps) {
   const dragPreview = useBattleMapView((state) => state.dragPreview)
+  const clearDragPreview = useBattleMapView((state) => state.clearDragPreview)
   const previewToken = dragPreview
-    ? tokens.find((token) => token.id === dragPreview.tokenId)
+    ? tokens.find((token) => token.visible && token.id === dragPreview.tokenId)
     : undefined
 
+  useEffect(() => {
+    if (dragPreview && !previewToken) clearDragPreview()
+  }, [clearDragPreview, dragPreview, previewToken])
+
   return (
-    <group name="token-layer" dispose={null}>
-      {previewToken ? <MovementPreview from={previewToken.cell} to={dragPreview!.cell} /> : null}
+    <group name="token-layer">
+      {dragPreview && previewToken ? (
+        <MovementPreview from={previewToken.cell} to={dragPreview.cell} />
+      ) : null}
       {tokens
         .filter((token) => token.visible)
         .map((token) => (
