@@ -4,10 +4,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('./api', () => ({
   getBattleMap: vi.fn(),
+  setBattleMapTerrain: vi.fn(),
 }))
 
 vi.mock('../battle-map/BattleMapView', () => ({
   BattleMapView: () => <div data-testid="battle-map-view" />,
+}))
+
+vi.mock('./TerrainEditorPanel', () => ({
+  TerrainEditorPanel: () => <div data-testid="terrain-editor-panel" />,
 }))
 
 import { getBattleMap } from './api'
@@ -45,6 +50,7 @@ describe('BattleMapPage', () => {
 
     expect(await screen.findByRole('heading', { name: /keep — ground floor/i })).toBeInTheDocument()
     expect(screen.getByTestId('battle-map-view')).toBeInTheDocument()
+    expect(screen.getByTestId('terrain-editor-panel')).toBeInTheDocument()
   })
 
   it('shows a not-found message when no map matches the id', async () => {
