@@ -8,6 +8,15 @@ When you start a task: add an entry with what you're touching (issue #, files, b
 
 ---
 
+## 2026-07-11 — Claude Code (Task 1: battle_maps schema)
+
+**Task**: Task 1 of `docs/superpowers/plans` battle map integration plan — `battle_maps` Postgres schema, RLS, and `create_battle_map` RPC (Wayfinder issue #4's Battle Map entity).
+**Status**: done. Added `public.battle_maps` (campaign-scoped, no `session_id`), a select RLS policy gated by the existing `is_campaign_member` helper, and a `SECURITY DEFINER` `create_battle_map` RPC gated on `campaigns.dm_user_id = auth.uid()` — same gateway pattern as `create_campaign_invitation`. Also fixed a latent race in `vitest.integration.config.ts`: with two integration test files now present, vitest's default file-level parallelism raced concurrent `auth.admin.createUser` calls against the shared local GoTrue container, intermittently failing with `AuthRetryableFetchError`. Fixed with `fileParallelism: false` (only surfaces once 2+ integration test files exist, so invisible before this task).
+**Touched**: `app/supabase/migrations/0003_battle_maps.sql` (new), `app/tests/integration/battle-maps.rpc.test.ts` (new), `app/vitest.integration.config.ts` (modified). Full report at `.superpowers/sdd/task-1-report.md`. Committed on `feat/taleforge-battle-map-integration` (`0b3a87d`). `npm test` 123/123, `npm run build` clean, `npm run test:db` 7/7 (stable across repeated runs).
+**Handoff**: Task 2 (per the plan) consumes `create_battle_map(p_campaign_id uuid, p_name text)` from `api.ts` by exact name/params — that contract is in place. No other schema/RPC pieces from this task's brief were deferred.
+
+---
+
 ## 2026-07-11 — Claude Code (final-review fixes)
 
 **Task**: fixed 2 Important + 1 folded-in Minor finding from the final whole-branch review of `docs/superpowers/plans/2026-07-11-taleforge-foundation.md` (all 8 tasks complete), before merge.
