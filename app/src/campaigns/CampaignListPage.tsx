@@ -4,14 +4,20 @@ import { type Campaign, listMyCampaigns } from './api'
 
 export function CampaignListPage() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([])
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    void listMyCampaigns().then(setCampaigns)
+    listMyCampaigns()
+      .then(setCampaigns)
+      .catch((listError: unknown) => {
+        setError(listError instanceof Error ? listError.message : String(listError))
+      })
   }, [])
 
   return (
     <main className="campaign-list-page">
       <h1>Your Campaigns</h1>
+      {error && <div className="error-message">{error}</div>}
       <ul>
         {campaigns.map((campaign) => (
           <li key={campaign.id}>

@@ -7,10 +7,16 @@ type InvitePanelProps = {
 
 export function InvitePanel({ campaignId }: InvitePanelProps) {
   const [code, setCode] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   async function handleGenerate() {
-    const invitation = await createInvitation(campaignId)
-    setCode(invitation.code)
+    setError(null)
+    try {
+      const invitation = await createInvitation(campaignId)
+      setCode(invitation.code)
+    } catch (generateError) {
+      setError(generateError instanceof Error ? generateError.message : String(generateError))
+    }
   }
 
   return (
@@ -24,6 +30,7 @@ export function InvitePanel({ campaignId }: InvitePanelProps) {
           <code>{`${window.location.origin}/join/${code}`}</code>
         </p>
       )}
+      {error && <div className="error-message">{error}</div>}
     </section>
   )
 }
