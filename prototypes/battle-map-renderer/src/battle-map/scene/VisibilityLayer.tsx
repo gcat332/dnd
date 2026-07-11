@@ -6,16 +6,20 @@ import {
   RedFormat,
   UnsignedByteType,
 } from 'three'
-import { chunkBounds, type ChunkAddress } from '../domain/chunks'
-import {
-  visibilityTextureData,
-  type CellVisibility,
-  type VisibilityGrid,
-} from '../domain/visibility'
+import { chunkBounds, type ChunkAddress, type ChunkBounds } from '../domain/chunks'
+import { MAP_SIZE_CELLS } from '../domain/grid'
+import { visibilityTextureData, type VisibilityGrid } from '../domain/visibility'
+import type { MapDetailMode } from '../domain/viewport'
 import { chunkAddressKey } from './MapSurface'
 
 const CELL_TEXTURE_PIXELS = 64
 const UNIT_PLANE = new PlaneGeometry(1, 1)
+const OVERVIEW_BOUNDS: ChunkBounds = {
+  minColumn: 0,
+  minRow: 0,
+  maxColumnExclusive: MAP_SIZE_CELLS,
+  maxRowExclusive: MAP_SIZE_CELLS,
+}
 
 const VERTEX_SHADER = `
   varying vec2 vUv;
@@ -42,39 +46,42 @@ const FRAGMENT_SHADER = `
   }
 `
 
-type VisibilityChunkProps = {
-  address: ChunkAddress
-  grid: VisibilityGrid
-}
-
-function visibilityChunkGrid(grid: VisibilityGrid, address: ChunkAddress): VisibilityGrid {
-  visibilityTextureData(grid)
-  const bounds = chunkBounds(address, CELL_TEXTURE_PIXELS)
+function visibilitySlice(
+  grid: VisibilityGrid,
+  encodedGrid: Uint8Array,
+  bounds: ChunkBounds,
+): { width: number; height: number; data: Uint8Array } {
   if (grid.width < bounds.maxColumnExclusive || grid.height < bounds.maxRowExclusive) {
     throw new RangeError('Visibility data must cover every requested Render Chunk')
   }
 
   const width = bounds.maxColumnExclusive - bounds.minColumn
   const height = bounds.maxRowExclusive - bounds.minRow
-  const cells: CellVisibility[] = []
-  for (let row = bounds.minRow; row < bounds.maxRowExclusive; row += 1) {
-    for (let column = bounds.minColumn; column < bounds.maxColumnExclusive; column += 1) {
-      cells.push(grid.cells[row * grid.width + column]!)
-    }
+  const data = new Uint8Array(width * height)
+  for (let textureRow = 0; textureRow < height; textureRow += 1) {
+    const worldRow = bounds.maxRowExclusive - textureRow - 1
+    const sourceStart = worldRow * grid.width + bounds.minColumn
+    data.set(encodedGrid.subarray(sourceStart, sourceStart + width), textureRow * width)
   }
-  return { width, height, cells }
+  return { width, height, data }
 }
 
-function VisibilityChunk({ address, grid }: VisibilityChunkProps) {
-  const bounds = chunkBounds(address, CELL_TEXTURE_PIXELS)
+type VisibilitySurfaceProps = {
+  name: string
+  bounds: ChunkBounds
+  grid: VisibilityGrid
+  encodedGrid: Uint8Array
+}
+
+function VisibilitySurface({ name, bounds, grid, encodedGrid }: VisibilitySurfaceProps) {
   const width = bounds.maxColumnExclusive - bounds.minColumn
   const depth = bounds.maxRowExclusive - bounds.minRow
   const texture = useMemo(() => {
-    const chunkGrid = visibilityChunkGrid(grid, address)
+    const slice = visibilitySlice(grid, encodedGrid, bounds)
     const resource = new DataTexture(
-      visibilityTextureData(chunkGrid),
-      chunkGrid.width,
-      chunkGrid.height,
+      slice.data,
+      slice.width,
+      slice.height,
       RedFormat,
       UnsignedByteType,
     )
@@ -83,13 +90,13 @@ function VisibilityChunk({ address, grid }: VisibilityChunkProps) {
     resource.generateMipmaps = false
     resource.needsUpdate = true
     return resource
-  }, [address.column, address.row, grid])
+  }, [bounds.maxColumnExclusive, bounds.maxRowExclusive, bounds.minColumn, bounds.minRow, encodedGrid, grid])
 
   useEffect(() => () => texture.dispose(), [texture])
 
   return (
     <mesh
-      name={`visibility-chunk-${chunkAddressKey(address)}`}
+      name={name}
       position={[bounds.minColumn + width / 2, 0.06, bounds.minRow + depth / 2]}
       rotation={[-Math.PI / 2, 0, 0]}
       scale={[width, depth, 1]}
@@ -110,16 +117,34 @@ function VisibilityChunk({ address, grid }: VisibilityChunkProps) {
 }
 
 export type VisibilityLayerProps = {
+  mode: MapDetailMode
   grid: VisibilityGrid
   visibleChunks: readonly ChunkAddress[]
 }
 
-export function VisibilityLayer({ grid, visibleChunks }: VisibilityLayerProps) {
+export function VisibilityLayer({ mode, grid, visibleChunks }: VisibilityLayerProps) {
+  const encodedGrid = useMemo(() => visibilityTextureData(grid), [grid])
+
   return (
     <group name="visibility-layer">
-      {visibleChunks.map((address) => (
-        <VisibilityChunk key={chunkAddressKey(address)} address={address} grid={grid} />
-      ))}
+      {mode === 'overview' ? (
+        <VisibilitySurface
+          name="visibility-overview"
+          bounds={OVERVIEW_BOUNDS}
+          grid={grid}
+          encodedGrid={encodedGrid}
+        />
+      ) : (
+        visibleChunks.map((address) => (
+          <VisibilitySurface
+            key={chunkAddressKey(address)}
+            name={`visibility-chunk-${chunkAddressKey(address)}`}
+            bounds={chunkBounds(address, CELL_TEXTURE_PIXELS)}
+            grid={grid}
+            encodedGrid={encodedGrid}
+          />
+        ))
+      )}
     </group>
   )
 }

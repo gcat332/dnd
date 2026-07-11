@@ -93,7 +93,7 @@ export function BattleMapScene({
       <ProceduralGrid />
       <DimensionalTerrain />
       <TokenLayer tokens={tokens} onMoveIntent={onMoveIntent} />
-      <VisibilityLayer grid={visibility} visibleChunks={visibleChunks} />
+      <VisibilityLayer mode={mode} grid={visibility} visibleChunks={visibleChunks} />
     </>
   )
 }

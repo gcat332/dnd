@@ -1,6 +1,7 @@
 import { MapControls } from '@react-three/drei'
 import { Canvas, useThree } from '@react-three/fiber'
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { Vector3 } from 'three'
 import type { MapControls as MapControlsImpl } from 'three-stdlib'
 import { MAP_SIZE_CELLS, type GridCell } from './domain/grid'
 import type { MoveIntent, TokenRenderState } from './domain/tokens'
@@ -16,7 +17,21 @@ import { chunkAddressKey } from './scene/MapSurface'
 
 type BattleMapCameraProps = {
   onReady: () => void
+  onVisibilityProbePoints: (points: VisibilityProbePoints) => void
 }
+
+type ScreenPoint = Readonly<{ x: number; y: number }>
+type VisibilityProbePoints = Readonly<{
+  visible: ScreenPoint
+  explored: ScreenPoint
+  hidden: ScreenPoint
+}>
+
+const VISIBILITY_PROBE_CELLS = {
+  visible: { column: 97, row: 99 },
+  explored: { column: 105, row: 99 },
+  hidden: { column: 110, row: 99 },
+} as const
 
 const FIXTURE_TOKENS: readonly TokenRenderState[] = [
   {
@@ -50,7 +65,7 @@ function playerVisibility(): VisibilityGrid {
   for (let row = 0; row < MAP_SIZE_CELLS; row += 1) {
     for (let column = 0; column < MAP_SIZE_CELLS; column += 1) {
       const distance = Math.hypot(column - 99, row - 99)
-      cells.push(distance <= 9 ? 'visible' : distance <= 18 ? 'explored' : 'hidden')
+      cells.push(distance <= 4 ? 'visible' : distance <= 8 ? 'explored' : 'hidden')
     }
   }
   return { width: MAP_SIZE_CELLS, height: MAP_SIZE_CELLS, cells }
@@ -84,7 +99,7 @@ function fixtureViewer(): Viewer {
   return new URLSearchParams(window.location.search).get('viewer') === 'player' ? 'player' : 'dm'
 }
 
-function BattleMapCamera({ onReady }: BattleMapCameraProps) {
+function BattleMapCamera({ onReady, onVisibilityProbePoints }: BattleMapCameraProps) {
   const controls = useRef<MapControlsImpl>(null)
   const camera = useThree((state) => state.camera)
   const size = useThree((state) => state.size)
@@ -99,8 +114,22 @@ function BattleMapCamera({ onReady }: BattleMapCameraProps) {
       target ? { x: target.x, z: target.z } : { x: 100, z: 100 },
       visibleCellSpan,
     )
+    camera.updateMatrixWorld()
+    camera.updateProjectionMatrix()
+    const projectCell = (cell: GridCell): ScreenPoint => {
+      const point = new Vector3(cell.column + 0.5, 0.06, cell.row + 0.5).project(camera)
+      return {
+        x: ((point.x + 1) / 2) * size.width,
+        y: ((1 - point.y) / 2) * size.height,
+      }
+    }
+    onVisibilityProbePoints({
+      visible: projectCell(VISIBILITY_PROBE_CELLS.visible),
+      explored: projectCell(VISIBILITY_PROBE_CELLS.explored),
+      hidden: projectCell(VISIBILITY_PROBE_CELLS.hidden),
+    })
     invalidate()
-  }, [camera, invalidate, setCamera, size.height, size.width])
+  }, [camera, invalidate, onVisibilityProbePoints, setCamera, size.height, size.width])
 
   useEffect(() => {
     syncViewState()
@@ -161,6 +190,7 @@ type VisibilityDiagnosticsProps = {
   tokens: readonly TokenRenderState[]
   visibility: VisibilityGrid
   movingLightCell: GridCell
+  probePoints: VisibilityProbePoints | null
 }
 
 function VisibilityDiagnostics({
@@ -168,6 +198,7 @@ function VisibilityDiagnostics({
   tokens,
   visibility,
   movingLightCell,
+  probePoints,
 }: VisibilityDiagnosticsProps) {
   return (
     <output
@@ -177,6 +208,7 @@ function VisibilityDiagnostics({
       data-visible-token-ids={tokens.filter((token) => token.visible).map((token) => token.id).join(',')}
       data-visibility-checksum={visibilityChecksum(visibility)}
       data-moving-light-cell={`${movingLightCell.column}:${movingLightCell.row}`}
+      data-visibility-probe-points={probePoints ? JSON.stringify(probePoints) : ''}
     />
   )
 }
@@ -186,7 +218,12 @@ export function BattleMapCanvas() {
   const [cameraReady, setCameraReady] = useState(false)
   const [moveIntents, setMoveIntents] = useState<readonly MoveIntent[]>([])
   const [movingLightCell, setMovingLightCell] = useState<GridCell>({ column: 101, row: 100 })
+  const [probePoints, setProbePoints] = useState<VisibilityProbePoints | null>(null)
   const markCameraReady = useCallback(() => setCameraReady(true), [])
+  const recordVisibilityProbePoints = useCallback(
+    (points: VisibilityProbePoints) => setProbePoints(points),
+    [],
+  )
   const recordMoveIntent = useCallback(
     (intent: MoveIntent) => setMoveIntents((current) => [...current, intent]),
     [],
@@ -227,7 +264,10 @@ export function BattleMapCanvas() {
         shadows="percentage"
       >
         <color attach="background" args={['#171a1f']} />
-        <BattleMapCamera onReady={markCameraReady} />
+        <BattleMapCamera
+          onReady={markCameraReady}
+          onVisibilityProbePoints={recordVisibilityProbePoints}
+        />
         <BattleMapScene
           tokens={tokens}
           onMoveIntent={recordMoveIntent}
@@ -242,6 +282,7 @@ export function BattleMapCanvas() {
         tokens={tokens}
         visibility={visibility}
         movingLightCell={movingLightCell}
+        probePoints={probePoints}
       />
     </div>
   )
