@@ -2,18 +2,9 @@ import type { RouteObject } from 'react-router'
 import { Navigate, Outlet } from 'react-router'
 import { LoginPage } from './auth/LoginPage'
 import { useAuthSession } from './auth/useAuthSession'
-
-function CampaignListPageStub() {
-  return <div>Your Campaigns</div>
-}
-
-function NewCampaignPageStub() {
-  return <div>New Campaign</div>
-}
-
-function CampaignDashboardPageStub() {
-  return <div>Campaign Dashboard</div>
-}
+import { CampaignDashboardPage } from './campaigns/CampaignDashboardPage'
+import { CampaignListPage } from './campaigns/CampaignListPage'
+import { NewCampaignPage } from './campaigns/NewCampaignPage'
 
 function JoinCampaignPageStub() {
   return <div>Join Campaign</div>
@@ -32,9 +23,9 @@ export const routeConfig: RouteObject[] = [
   {
     element: <RequireAuth />,
     children: [
-      { path: '/campaigns', element: <CampaignListPageStub /> },
-      { path: '/campaigns/new', element: <NewCampaignPageStub /> },
-      { path: '/campaigns/:campaignId', element: <CampaignDashboardPageStub /> },
+      { path: '/campaigns', element: <CampaignListPage /> },
+      { path: '/campaigns/new', element: <NewCampaignPage /> },
+      { path: '/campaigns/:campaignId', element: <CampaignDashboardPage /> },
       { path: '/join/:code', element: <JoinCampaignPageStub /> },
     ],
   },
