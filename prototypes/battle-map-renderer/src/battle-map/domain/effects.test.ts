@@ -48,6 +48,102 @@ it('returns a 90-degree cone in stable row-major order', () => {
   ])
 })
 
+it.each([
+  {
+    direction: { column: 0 as const, row: -1 as const },
+    cells: [[8, 8], [9, 8], [10, 8], [11, 8], [12, 8], [9, 9], [10, 9], [11, 9], [10, 10]],
+  },
+  {
+    direction: { column: 1 as const, row: -1 as const },
+    cells: [[10, 8], [10, 9], [11, 9], [10, 10], [11, 10], [12, 10]],
+  },
+  {
+    direction: { column: 1 as const, row: 0 as const },
+    cells: [[12, 8], [11, 9], [12, 9], [10, 10], [11, 10], [12, 10], [11, 11], [12, 11], [12, 12]],
+  },
+  {
+    direction: { column: 1 as const, row: 1 as const },
+    cells: [[10, 10], [11, 10], [12, 10], [10, 11], [11, 11], [10, 12]],
+  },
+  {
+    direction: { column: 0 as const, row: 1 as const },
+    cells: [[10, 10], [9, 11], [10, 11], [11, 11], [8, 12], [9, 12], [10, 12], [11, 12], [12, 12]],
+  },
+  {
+    direction: { column: -1 as const, row: 1 as const },
+    cells: [[8, 10], [9, 10], [10, 10], [9, 11], [10, 11], [10, 12]],
+  },
+  {
+    direction: { column: -1 as const, row: 0 as const },
+    cells: [[8, 8], [8, 9], [9, 9], [8, 10], [9, 10], [10, 10], [8, 11], [9, 11], [8, 12]],
+  },
+  {
+    direction: { column: -1 as const, row: -1 as const },
+    cells: [[10, 8], [9, 9], [10, 9], [8, 10], [9, 10], [10, 10]],
+  },
+])('covers the $direction.column,$direction.row cone in row-major order', ({ direction, cells }) => {
+  expect(
+    cellsCoveredByTemplate({ kind: 'cone', origin: { column: 10, row: 10 }, direction, length: 2 }),
+  ).toEqual(cells.map(([column, row]) => ({ column, row })))
+})
+
+it('clips circle and cone coverage at both logical map edges', () => {
+  expect(cellsCoveredByTemplate({ kind: 'circle', origin: { column: 0, row: 0 }, radius: 1 })).toEqual([
+    { column: 0, row: 0 },
+    { column: 1, row: 0 },
+    { column: 0, row: 1 },
+  ])
+  expect(cellsCoveredByTemplate({ kind: 'circle', origin: { column: 199, row: 199 }, radius: 1 })).toEqual([
+    { column: 199, row: 198 },
+    { column: 198, row: 199 },
+    { column: 199, row: 199 },
+  ])
+  expect(
+    cellsCoveredByTemplate({
+      kind: 'cone',
+      origin: { column: 0, row: 0 },
+      direction: { column: -1, row: -1 },
+      length: 2,
+    }),
+  ).toEqual([{ column: 0, row: 0 }])
+  expect(
+    cellsCoveredByTemplate({
+      kind: 'cone',
+      origin: { column: 199, row: 199 },
+      direction: { column: 1, row: 1 },
+      length: 2,
+    }),
+  ).toEqual([{ column: 199, row: 199 }])
+})
+
+it('orders negative and reverse lines from their origin to the clipped endpoint', () => {
+  expect(
+    cellsCoveredByTemplate({
+      kind: 'line',
+      origin: { column: 3, row: 3 },
+      direction: { column: -1, row: 0 },
+      length: 5,
+    }),
+  ).toEqual([
+    { column: 3, row: 3 },
+    { column: 2, row: 3 },
+    { column: 1, row: 3 },
+    { column: 0, row: 3 },
+  ])
+  expect(
+    cellsCoveredByTemplate({
+      kind: 'line',
+      origin: { column: 3, row: 3 },
+      direction: { column: -1, row: -1 },
+      length: 2,
+    }),
+  ).toEqual([
+    { column: 3, row: 3 },
+    { column: 2, row: 2 },
+    { column: 1, row: 1 },
+  ])
+})
+
 it('rejects invalid template sizes and directions', () => {
   expect(() =>
     cellsCoveredByTemplate({ kind: 'circle', origin: { column: 10, row: 10 }, radius: 0 }),

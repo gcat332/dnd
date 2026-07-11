@@ -1,5 +1,5 @@
 import { useFrame, useThree } from '@react-three/fiber'
-import { useRef } from 'react'
+import { useCallback, useLayoutEffect, useMemo, useRef } from 'react'
 import type { Group } from 'three'
 import { gridToWorld, type GridCell, type WorldPoint } from '../domain/grid'
 import { interpolateWorldPoint } from '../domain/interpolation'
@@ -19,6 +19,14 @@ export type AnimatedTokenProps = {
   animation: RemoteTokenAnimation
   onMoveIntent: (intent: MoveIntent) => void
   onWorldPoint?: (tokenId: string, point: WorldPoint) => void
+  onComplete: (animation: RemoteTokenAnimation) => void
+}
+
+export function removeCompletedRemoteTokenAnimation(
+  animations: readonly RemoteTokenAnimation[],
+  completed: RemoteTokenAnimation,
+): readonly RemoteTokenAnimation[] {
+  return animations.filter((animation) => animation !== completed)
 }
 
 export function AnimatedToken({
@@ -26,24 +34,59 @@ export function AnimatedToken({
   animation,
   onMoveIntent,
   onWorldPoint,
+  onComplete,
 }: AnimatedTokenProps) {
   const group = useRef<Group>(null)
+  const active = useRef(true)
   const invalidate = useThree((state) => state.invalidate)
-  const from = gridToWorld(animation.from)
-  const to = gridToWorld(animation.to)
-  const initial = interpolateWorldPoint(from, to, Date.now(), animation.eventStartMs, animation.durationMs)
+  const { from, to, initial } = useMemo(() => {
+    const animationFrom = gridToWorld(animation.from)
+    const animationTo = gridToWorld(animation.to)
+    return {
+      from: animationFrom,
+      to: animationTo,
+      initial: interpolateWorldPoint(
+        animationFrom,
+        animationTo,
+        Date.now(),
+        animation.eventStartMs,
+        animation.durationMs,
+      ),
+    }
+  }, [animation])
+
+  const reportGroupWorldPoint = useCallback(() => {
+    const position = group.current?.position
+    if (!position) return
+    onWorldPoint?.(token.id, { x: to.x + position.x, z: to.z + position.z })
+  }, [onWorldPoint, token.id, to.x, to.z])
+
+  useLayoutEffect(() => {
+    active.current = true
+    reportGroupWorldPoint()
+    return () => {
+      active.current = false
+    }
+  }, [animation, reportGroupWorldPoint])
 
   useFrame(() => {
+    if (!active.current) return
+    const nowMs = Date.now()
     const point = interpolateWorldPoint(
       from,
       to,
-      Date.now(),
+      nowMs,
       animation.eventStartMs,
       animation.durationMs,
     )
     group.current?.position.set(point.x - to.x, 0, point.z - to.z)
-    onWorldPoint?.(token.id, point)
-    if (Date.now() < animation.eventStartMs + animation.durationMs) invalidate()
+    reportGroupWorldPoint()
+    if (nowMs >= animation.eventStartMs + animation.durationMs) {
+      active.current = false
+      onComplete(animation)
+      return
+    }
+    invalidate()
   })
 
   return (

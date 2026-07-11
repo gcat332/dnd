@@ -34,6 +34,41 @@ test('switches targeting templates and resumes a late remote Token animation', a
   const diagnostics = page.getByTestId('effects-animation-diagnostics')
   await expect(diagnostics).toHaveAttribute('data-template-kind', 'circle')
   await expect(diagnostics).toHaveAttribute('data-target-cells', JSON.stringify(CIRCLE_CELLS))
+  await expect(diagnostics).toHaveAttribute('data-active-animation-count', '0')
+
+  await page.evaluate(() => {
+    window.dispatchEvent(new CustomEvent('battle-map:set-template', { detail: { kind: 'toString' } }))
+    window.dispatchEvent(new CustomEvent('battle-map:set-template', { detail: null }))
+    for (const detail of [
+      {
+        tokenId: 'unknown-token',
+        from: { column: 99, row: 99 },
+        to: { column: 103, row: 99 },
+        eventStartMs: Date.now(),
+        durationMs: 1_000,
+      },
+      {
+        tokenId: 'fixture-token',
+        from: { column: 99, row: 99 },
+        to: { column: Number.POSITIVE_INFINITY, row: 99 },
+        eventStartMs: Date.now(),
+        durationMs: 1_000,
+      },
+      {
+        tokenId: 'fixture-token',
+        from: { column: 99, row: 99 },
+        to: { column: 103, row: 99 },
+        eventStartMs: Number.NaN,
+        durationMs: -1,
+      },
+    ]) {
+      window.dispatchEvent(new CustomEvent('battle-map:remote-token-update', { detail }))
+    }
+  })
+  await expect(diagnostics).toHaveAttribute('data-template-kind', 'circle')
+  await expect(diagnostics).toHaveAttribute('data-target-cells', JSON.stringify(CIRCLE_CELLS))
+  await expect(diagnostics).toHaveAttribute('data-active-animation-count', '0')
+  await expect(diagnostics).toHaveAttribute('data-rendered-token-point', '')
 
   await page.evaluate(() =>
     window.dispatchEvent(new CustomEvent('battle-map:set-template', { detail: { kind: 'cone' } })),
@@ -61,13 +96,19 @@ test('switches targeting templates and resumes a late remote Token animation', a
     ),
   )
 
+  await expect(diagnostics).toHaveAttribute('data-active-animation-count', '1')
   await expect(diagnostics).toHaveAttribute(
-    'data-animated-token-point',
+    'data-rendered-token-point',
     JSON.stringify({ x: 101.5, z: 99.5 }),
   )
+  await expect.poll(async () => Number(await diagnostics.getAttribute('data-animation-sample-count'))).toBeGreaterThan(0)
   await page.clock.runFor(516)
   await expect(diagnostics).toHaveAttribute(
-    'data-animated-token-point',
+    'data-rendered-token-point',
     JSON.stringify({ x: 103.5, z: 99.5 }),
   )
+  await expect(diagnostics).toHaveAttribute('data-active-animation-count', '0')
+  const completedSampleCount = await diagnostics.getAttribute('data-animation-sample-count')
+  await page.clock.runFor(100)
+  await expect(diagnostics).toHaveAttribute('data-animation-sample-count', completedSampleCount ?? '')
 })

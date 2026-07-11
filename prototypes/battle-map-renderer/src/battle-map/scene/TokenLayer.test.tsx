@@ -97,3 +97,30 @@ it('clears the local preview when the active Token is removed', async () => {
   expect(target.releasePointerCapture).toHaveBeenCalledOnce()
   await renderer.unmount()
 })
+
+it('does not let a stale animation override a later committed Token cell', async () => {
+  const committedToken = { ...TOKEN, cell: { column: 20, row: 12 } }
+  const renderer = await ReactThreeTestRenderer.create(
+    <TokenLayer
+      tokens={[committedToken]}
+      onMoveIntent={vi.fn()}
+      remoteTokenAnimations={[
+        {
+          tokenId: TOKEN.id,
+          from: TOKEN.cell,
+          to: { column: 13, row: 12 },
+          eventStartMs: 1_000,
+          durationMs: 1_000,
+        },
+      ]}
+    />,
+  )
+
+  expect(renderer.scene.findAllByProps({ name: `animated-token-${TOKEN.id}` })).toHaveLength(0)
+  expect(renderer.scene.findByProps({ name: `token-${TOKEN.id}` }).instance.position.toArray()).toEqual([
+    20.5,
+    0.25,
+    12.5,
+  ])
+  await renderer.unmount()
+})

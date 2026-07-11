@@ -60,6 +60,7 @@ type BattleMapSceneProps = {
   targetTemplate?: AreaTemplate | null
   remoteTokenAnimations?: readonly RemoteTokenAnimation[]
   onAnimatedTokenWorldPoint?: (tokenId: string, point: WorldPoint) => void
+  onRemoteTokenAnimationComplete?: (animation: RemoteTokenAnimation) => void
 }
 
 const NO_TOKENS: readonly TokenRenderState[] = []
@@ -79,6 +80,7 @@ export function BattleMapScene({
   targetTemplate = null,
   remoteTokenAnimations = [],
   onAnimatedTokenWorldPoint,
+  onRemoteTokenAnimationComplete,
 }: BattleMapSceneProps = {}) {
   const invalidate = useThree((state) => state.invalidate)
   const { mode, visibleChunks } = useSceneSelection()
@@ -107,6 +109,7 @@ export function BattleMapScene({
         onMoveIntent={onMoveIntent}
         remoteTokenAnimations={remoteTokenAnimations}
         onAnimatedTokenWorldPoint={onAnimatedTokenWorldPoint}
+        onRemoteTokenAnimationComplete={onRemoteTokenAnimationComplete}
       />
       <VisibilityLayer mode={mode} grid={visibility} visibleChunks={visibleChunks} />
     </>

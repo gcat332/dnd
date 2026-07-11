@@ -11,6 +11,7 @@ export type TokenLayerProps = {
   onMoveIntent: (intent: MoveIntent) => void
   remoteTokenAnimations?: readonly RemoteTokenAnimation[]
   onAnimatedTokenWorldPoint?: (tokenId: string, point: WorldPoint) => void
+  onRemoteTokenAnimationComplete?: (animation: RemoteTokenAnimation) => void
 }
 
 export function TokenLayer({
@@ -18,6 +19,7 @@ export function TokenLayer({
   onMoveIntent,
   remoteTokenAnimations = [],
   onAnimatedTokenWorldPoint,
+  onRemoteTokenAnimationComplete = () => undefined,
 }: TokenLayerProps) {
   const dragPreview = useBattleMapView((state) => state.dragPreview)
   const clearDragPreview = useBattleMapView((state) => state.clearDragPreview)
@@ -37,7 +39,12 @@ export function TokenLayer({
       {tokens
         .filter((token) => token.visible)
         .map((token) => {
-          const animation = remoteTokenAnimations.find((candidate) => candidate.tokenId === token.id)
+          const animation = remoteTokenAnimations.find(
+            (candidate) =>
+              candidate.tokenId === token.id &&
+              candidate.to.column === token.cell.column &&
+              candidate.to.row === token.cell.row,
+          )
           return animation ? (
             <AnimatedToken
               key={token.id}
@@ -45,6 +52,7 @@ export function TokenLayer({
               animation={animation}
               onMoveIntent={onMoveIntent}
               onWorldPoint={onAnimatedTokenWorldPoint}
+              onComplete={onRemoteTokenAnimationComplete}
             />
           ) : (
             <TokenMesh key={token.id} token={token} onMoveIntent={onMoveIntent} />
