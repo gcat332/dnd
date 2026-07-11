@@ -1,6 +1,6 @@
-# DnD Browser Tabletop
+# Taleforge
 
-This context defines the language for a browser-based tabletop game for friends playing DnD-style sessions remotely.
+This context defines the language for Taleforge, a browser-based tabletop game for friends playing original fantasy adventure sessions remotely, with AI-assisted campaign generation from any story premise.
 
 ## Language
 
@@ -86,9 +86,9 @@ _Avoid_: Token profile, simple HP card
 A searchable ability produced from character option combinations or original content rules, intended to create variety beyond fixed SRD entries.
 _Avoid_: Official-only feature, static trait
 
-**SRD-compatible Ruleset**:
-A rules foundation based on Creative Commons SRD material, extended with original content rather than non-SRD official D&D content.
-_Avoid_: Full official D&D clone, proprietary D&D content
+**Original Ruleset**:
+A rules foundation built from generic, non-copyrightable RPG mechanics (class/level system, dice resolution, grid tactics) combined entirely with original names, lore, and content rather than any published system's proprietary material.
+_Avoid_: SRD-derived content, licensed D&D material, copied stat blocks
 
 **Playable MVP**:
 A first version that supports a real campaign end-to-end with limited content, while proving the full platform shape can expand later.
@@ -127,8 +127,8 @@ A DM-facing tool for creating and editing campaign content such as monsters, ite
 _Avoid_: Admin database, developer-only content
 
 **Homebrew Content**:
-Campaign-specific or shared original content created outside the base SRD-compatible ruleset.
-_Avoid_: Official content, imported D&D book content
+Campaign-specific or shared original content created by a DM beyond Taleforge's shipped starter content.
+_Avoid_: Official content, imported book content
 
 **Rules Content Editor**:
 A content editor scope that lets DMs create rules-bearing content such as spells, abilities, conditions, traits, resources, damage types, monsters, items, and encounters.
