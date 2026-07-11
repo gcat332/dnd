@@ -15,7 +15,7 @@
 - Character is scoped to exactly one Campaign; Battle Map, RulesObject, and Homebrew Content are Campaign-scoped (issue #4) — not built in this plan, but table names/foreign keys elsewhere must stay compatible with that model.
 - Rules-affecting gameplay actions route through a Supabase Edge Function (issue #3/#6) — **not applicable to any task in this plan**; campaign/invitation writes use Postgres RPC functions instead, since they are atomic DB operations with no external calls or rules logic.
 - `react-router` 8.2.0 requires Node **22.22.0+** — this raises the `engines.node` floor from the prototype's existing `>=20.19.0`. Task 1 updates this.
-- No placeholder/mock data ships to `main` — every UI in this plan reads/writes the real Supabase project (or, in tests, a real local Supabase stack via the CLI — never a hand-rolled fake).
+- No placeholder/mock **data** ships to `main` — every UI reads/writes the real Supabase project, and every claim of "it works" is backed by either a unit test or the `test:db` integration suite against a real local Supabase stack, never a hand-rolled fake service. This does **not** forbid mocking `../lib/supabaseClient` inside a unit test — that's standard TDD isolation, used throughout this plan, and is a different thing from shipping fake data to a user.
 - Every SQL migration lives under `app/supabase/migrations/` and is applied with `supabase db reset` (local) or `supabase db push` (hosted) — never edited by hand after being applied; a schema change is always a *new* migration file.
 
 ---
