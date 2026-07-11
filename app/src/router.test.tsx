@@ -14,6 +14,13 @@ vi.mock('./lib/supabaseClient', () => ({
   },
 }))
 
+async function setAuthSession(session: unknown) {
+  const { supabase } = await import('./lib/supabaseClient')
+  vi.mocked(supabase.auth.getSession).mockResolvedValueOnce({
+    data: { session },
+  } as never)
+}
+
 describe('routeConfig', () => {
   it('renders the login route at /login', async () => {
     const router = createMemoryRouter(routeConfig, { initialEntries: ['/login'] })
@@ -27,5 +34,13 @@ describe('routeConfig', () => {
     render(<RouterProvider router={router} />)
 
     expect(await screen.findByText(/your campaigns/i)).toBeInTheDocument()
+  })
+
+  it('redirects to /login when accessing a protected route without authentication', async () => {
+    await setAuthSession(null)
+    const router = createMemoryRouter(routeConfig, { initialEntries: ['/campaigns'] })
+    render(<RouterProvider router={router} />)
+
+    expect(await screen.findByText(/sign in with discord/i)).toBeInTheDocument()
   })
 })

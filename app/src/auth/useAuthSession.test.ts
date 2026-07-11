@@ -44,4 +44,16 @@ describe('useAuthSession', () => {
 
     expect(result.current.session).toEqual(fakeSession)
   })
+
+  it('sets session to null and loading to false when getSession rejects', async () => {
+    const { supabase } = await import('../lib/supabaseClient')
+    vi.mocked(supabase.auth.getSession).mockRejectedValueOnce(new Error('Network error'))
+
+    const { result } = renderHook(() => useAuthSession())
+
+    expect(result.current.loading).toBe(true)
+
+    await waitFor(() => expect(result.current.loading).toBe(false))
+    expect(result.current.session).toBeNull()
+  })
 })

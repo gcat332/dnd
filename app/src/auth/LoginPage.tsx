@@ -1,11 +1,17 @@
+import { useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 
 export function LoginPage() {
-  function handleSignIn() {
-    void supabase.auth.signInWithOAuth({
+  const [error, setError] = useState<string | null>(null)
+
+  async function handleSignIn() {
+    const { error: signInError } = await supabase.auth.signInWithOAuth({
       provider: 'discord',
       options: { redirectTo: `${window.location.origin}/campaigns` },
     })
+    if (signInError) {
+      setError(signInError.message)
+    }
   }
 
   return (
@@ -14,6 +20,7 @@ export function LoginPage() {
       <button type="button" onClick={handleSignIn}>
         Sign in with Discord
       </button>
+      {error && <div className="error-message">{error}</div>}
     </main>
   )
 }
