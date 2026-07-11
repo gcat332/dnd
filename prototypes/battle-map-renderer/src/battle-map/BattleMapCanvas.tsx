@@ -3,7 +3,9 @@ import { Canvas, useThree } from '@react-three/fiber'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Vector3 } from 'three'
 import type { MapControls as MapControlsImpl } from 'three-stdlib'
-import { MAP_SIZE_CELLS, type GridCell } from './domain/grid'
+import { cellsCoveredByTemplate, type AreaTemplate } from './domain/effects'
+import { MAP_SIZE_CELLS, gridToWorld, type GridCell, type WorldPoint } from './domain/grid'
+import { interpolateWorldPoint } from './domain/interpolation'
 import type { MoveIntent, TokenRenderState } from './domain/tokens'
 import {
   visibilityTextureData,
@@ -14,6 +16,7 @@ import { useBattleMapView } from './state/useBattleMapView'
 import { BattleMapScene, useSceneSelection } from './scene/BattleMapScene'
 import type { VisualLight } from './scene/LightLayer'
 import { chunkAddressKey } from './scene/MapSurface'
+import type { RemoteTokenAnimation } from './scene/AnimatedToken'
 
 type BattleMapCameraProps = {
   onReady: () => void
@@ -83,6 +86,24 @@ const FIXED_LIGHTS: readonly VisualLight[] = [
     range: 14,
   },
 ]
+
+type TemplateKind = AreaTemplate['kind']
+
+const TARGET_TEMPLATES: Record<TemplateKind, AreaTemplate> = {
+  circle: { kind: 'circle', origin: { column: 99, row: 99 }, radius: 1 },
+  cone: {
+    kind: 'cone',
+    origin: { column: 99, row: 99 },
+    direction: { column: 1, row: 0 },
+    length: 2,
+  },
+  line: {
+    kind: 'line',
+    origin: { column: 99, row: 99 },
+    direction: { column: 1, row: 0 },
+    length: 2,
+  },
+}
 
 function visibilityChecksum(grid: VisibilityGrid): string {
   let checksum = 0x811c9dc5
@@ -213,12 +234,38 @@ function VisibilityDiagnostics({
   )
 }
 
+type EffectsAnimationDiagnosticsProps = {
+  template: AreaTemplate
+  animatedTokenPoint: WorldPoint | null
+}
+
+function EffectsAnimationDiagnostics({
+  template,
+  animatedTokenPoint,
+}: EffectsAnimationDiagnosticsProps) {
+  return (
+    <output
+      hidden
+      data-testid="effects-animation-diagnostics"
+      data-template-kind={template.kind}
+      data-target-cells={JSON.stringify(cellsCoveredByTemplate(template))}
+      data-animated-token-point={animatedTokenPoint ? JSON.stringify(animatedTokenPoint) : ''}
+    />
+  )
+}
+
 export function BattleMapCanvas() {
   const [viewer] = useState<Viewer>(fixtureViewer)
+  const [fixtureTokens, setFixtureTokens] = useState(FIXTURE_TOKENS)
   const [cameraReady, setCameraReady] = useState(false)
   const [moveIntents, setMoveIntents] = useState<readonly MoveIntent[]>([])
   const [movingLightCell, setMovingLightCell] = useState<GridCell>({ column: 101, row: 100 })
   const [probePoints, setProbePoints] = useState<VisibilityProbePoints | null>(null)
+  const [templateKind, setTemplateKind] = useState<TemplateKind>('circle')
+  const [remoteTokenAnimations, setRemoteTokenAnimations] = useState<
+    readonly RemoteTokenAnimation[]
+  >([])
+  const [animatedTokenPoint, setAnimatedTokenPoint] = useState<WorldPoint | null>(null)
   const markCameraReady = useCallback(() => setCameraReady(true), [])
   const recordVisibilityProbePoints = useCallback(
     (points: VisibilityProbePoints) => setProbePoints(points),
@@ -233,7 +280,39 @@ export function BattleMapCanvas() {
       cell.column === 101 ? { column: 106, row: 100 } : { column: 101, row: 100 },
     )
   }, [])
-  const tokens = viewer === 'dm' ? FIXTURE_TOKENS : PLAYER_TOKENS
+  const setFixtureTemplate = useCallback((event: Event) => {
+    const { kind } = (event as CustomEvent<{ kind: TemplateKind }>).detail
+    if (kind in TARGET_TEMPLATES) setTemplateKind(kind)
+  }, [])
+  const acceptRemoteTokenUpdate = useCallback((event: Event) => {
+    const animation = (event as CustomEvent<RemoteTokenAnimation>).detail
+    if (!FIXTURE_TOKENS.some((token) => token.id === animation.tokenId)) return
+    setAnimatedTokenPoint(
+      interpolateWorldPoint(
+        gridToWorld(animation.from),
+        gridToWorld(animation.to),
+        Date.now(),
+        animation.eventStartMs,
+        animation.durationMs,
+      ),
+    )
+    setRemoteTokenAnimations((animations) => [
+      ...animations.filter((candidate) => candidate.tokenId !== animation.tokenId),
+      animation,
+    ])
+    setFixtureTokens((current) =>
+      current.map((token) =>
+        token.id === animation.tokenId ? { ...token, cell: animation.to } : token,
+      ),
+    )
+  }, [])
+  const recordAnimatedTokenPoint = useCallback((_tokenId: string, point: WorldPoint) => {
+    setAnimatedTokenPoint(point)
+  }, [])
+  const tokens =
+    viewer === 'dm'
+      ? fixtureTokens
+      : fixtureTokens.filter((token) => PLAYER_TOKENS.some((playerToken) => playerToken.id === token.id))
   const visibility = viewer === 'dm' ? DM_VISIBILITY : PLAYER_VISIBILITY
   const lights: readonly VisualLight[] = [
     ...FIXED_LIGHTS,
@@ -249,8 +328,14 @@ export function BattleMapCanvas() {
 
   useEffect(() => {
     window.addEventListener('battle-map:move-light', moveFixtureLight)
-    return () => window.removeEventListener('battle-map:move-light', moveFixtureLight)
-  }, [moveFixtureLight])
+    window.addEventListener('battle-map:set-template', setFixtureTemplate)
+    window.addEventListener('battle-map:remote-token-update', acceptRemoteTokenUpdate)
+    return () => {
+      window.removeEventListener('battle-map:move-light', moveFixtureLight)
+      window.removeEventListener('battle-map:set-template', setFixtureTemplate)
+      window.removeEventListener('battle-map:remote-token-update', acceptRemoteTokenUpdate)
+    }
+  }, [acceptRemoteTokenUpdate, moveFixtureLight, setFixtureTemplate])
 
   return (
     <div className="battle-map-shell">
@@ -273,6 +358,9 @@ export function BattleMapCanvas() {
           onMoveIntent={recordMoveIntent}
           visibility={visibility}
           lights={lights}
+          targetTemplate={TARGET_TEMPLATES[templateKind]}
+          remoteTokenAnimations={remoteTokenAnimations}
+          onAnimatedTokenWorldPoint={recordAnimatedTokenPoint}
         />
       </Canvas>
       <ChunkDiagnostics cameraReady={cameraReady} />
@@ -283,6 +371,10 @@ export function BattleMapCanvas() {
         visibility={visibility}
         movingLightCell={movingLightCell}
         probePoints={probePoints}
+      />
+      <EffectsAnimationDiagnostics
+        template={TARGET_TEMPLATES[templateKind]}
+        animatedTokenPoint={animatedTokenPoint}
       />
     </div>
   )

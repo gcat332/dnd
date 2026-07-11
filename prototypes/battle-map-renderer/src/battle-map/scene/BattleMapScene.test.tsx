@@ -1,5 +1,6 @@
 import ReactThreeTestRenderer from '@react-three/test-renderer'
 import { beforeEach, expect, it } from 'vitest'
+import type { AreaTemplate } from '../domain/effects'
 import type { VisibilityGrid } from '../domain/visibility'
 import { useBattleMapView } from '../state/useBattleMapView'
 import { BattleMapScene } from './BattleMapScene'
@@ -21,6 +22,12 @@ const LIGHTS: readonly VisualLight[] = [
     range: 14,
   },
 ]
+
+const TEMPLATE: AreaTemplate = {
+  kind: 'circle',
+  origin: { column: 100, row: 100 },
+  radius: 1,
+}
 
 beforeEach(() => {
   useBattleMapView.setState(useBattleMapView.getInitialState(), true)
@@ -57,5 +64,53 @@ it('builds matching detail map and visibility chunk layers', async () => {
     .findByProps({ name: 'visibility-layer' })
     .children.filter((child) => child.props.name?.startsWith('visibility-chunk-')).length
   expect(visibilityChunks).toBe(mapChunks)
+  await renderer.unmount()
+})
+
+it('adds targeting and remote animation without bypassing Token visibility', async () => {
+  const renderer = await ReactThreeTestRenderer.create(
+    <BattleMapScene
+      targetTemplate={TEMPLATE}
+      tokens={[
+        {
+          id: 'visible-token',
+          label: 'Visible Token',
+          cell: { column: 102, row: 100 },
+          elevation: 0,
+          color: '#37ff78',
+          visible: true,
+        },
+        {
+          id: 'hidden-token',
+          label: 'Hidden Token',
+          cell: { column: 102, row: 101 },
+          elevation: 0,
+          color: '#ff4f81',
+          visible: false,
+        },
+      ]}
+      remoteTokenAnimations={[
+        {
+          tokenId: 'visible-token',
+          from: { column: 100, row: 100 },
+          to: { column: 102, row: 100 },
+          eventStartMs: 1_000,
+          durationMs: 1_000,
+        },
+        {
+          tokenId: 'hidden-token',
+          from: { column: 100, row: 101 },
+          to: { column: 102, row: 101 },
+          eventStartMs: 1_000,
+          durationMs: 1_000,
+        },
+      ]}
+    />,
+  )
+
+  expect(renderer.scene.findByProps({ name: 'targeting-layer' }).type).toBe('Group')
+  expect(renderer.scene.findAllByProps({ name: /^target-cell-/ })).toHaveLength(5)
+  expect(renderer.scene.findByProps({ name: 'animated-token-visible-token' }).type).toBe('Group')
+  expect(renderer.scene.findAllByProps({ name: 'animated-token-hidden-token' })).toHaveLength(0)
   await renderer.unmount()
 })

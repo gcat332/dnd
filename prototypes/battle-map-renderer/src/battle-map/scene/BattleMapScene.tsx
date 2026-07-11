@@ -1,7 +1,8 @@
 import { useThree } from '@react-three/fiber'
 import { useEffect, useMemo } from 'react'
 import type { ChunkAddress } from '../domain/chunks'
-import { MAP_SIZE_CELLS } from '../domain/grid'
+import type { AreaTemplate } from '../domain/effects'
+import { MAP_SIZE_CELLS, type WorldPoint } from '../domain/grid'
 import type { MoveIntent, TokenRenderState } from '../domain/tokens'
 import type { VisibilityGrid } from '../domain/visibility'
 import {
@@ -11,11 +12,13 @@ import {
   type WorldBounds,
 } from '../domain/viewport'
 import { useBattleMapView } from '../state/useBattleMapView'
+import type { RemoteTokenAnimation } from './AnimatedToken'
 import { DimensionalTerrain } from './DimensionalTerrain'
 import { LightLayer, type VisualLight } from './LightLayer'
 import { chunkAddressKey, MapSurface } from './MapSurface'
 import { ProceduralGrid } from './ProceduralGrid'
 import { TokenLayer } from './TokenLayer'
+import { TargetingLayer } from './TargetingLayer'
 import { VisibilityLayer } from './VisibilityLayer'
 
 const CELL_TEXTURE_PIXELS = 64
@@ -54,6 +57,9 @@ type BattleMapSceneProps = {
   onMoveIntent?: (intent: MoveIntent) => void
   visibility?: VisibilityGrid
   lights?: readonly VisualLight[]
+  targetTemplate?: AreaTemplate | null
+  remoteTokenAnimations?: readonly RemoteTokenAnimation[]
+  onAnimatedTokenWorldPoint?: (tokenId: string, point: WorldPoint) => void
 }
 
 const NO_TOKENS: readonly TokenRenderState[] = []
@@ -70,6 +76,9 @@ export function BattleMapScene({
   onMoveIntent = IGNORE_MOVE_INTENT,
   visibility = ALL_VISIBLE,
   lights = NO_LIGHTS,
+  targetTemplate = null,
+  remoteTokenAnimations = [],
+  onAnimatedTokenWorldPoint,
 }: BattleMapSceneProps = {}) {
   const invalidate = useThree((state) => state.invalidate)
   const { mode, visibleChunks } = useSceneSelection()
@@ -92,7 +101,13 @@ export function BattleMapScene({
       <MapSurface mode={mode} visibleChunks={visibleChunks} />
       <ProceduralGrid />
       <DimensionalTerrain />
-      <TokenLayer tokens={tokens} onMoveIntent={onMoveIntent} />
+      <TargetingLayer template={targetTemplate} />
+      <TokenLayer
+        tokens={tokens}
+        onMoveIntent={onMoveIntent}
+        remoteTokenAnimations={remoteTokenAnimations}
+        onAnimatedTokenWorldPoint={onAnimatedTokenWorldPoint}
+      />
       <VisibilityLayer mode={mode} grid={visibility} visibleChunks={visibleChunks} />
     </>
   )
