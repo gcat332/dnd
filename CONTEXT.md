@@ -32,6 +32,14 @@ _Avoid_: Autosave only, campaign save
 The rule that meaningful session changes are saved back into the campaign without requiring a manual DM confirmation step.
 _Avoid_: Manual commit, end-session approval
 
+**DM Prep**:
+The async work area where a DM edits campaign content and battle maps and stages a session plan while no live session is running, separate from the live session UI.
+_Avoid_: Live session UI, campaign builder IDE
+
+**Session Plan**:
+A DM-staged draft of the next session's battle map and notes, prepared during DM Prep and loaded automatically when that session begins.
+_Avoid_: Campaign draft, live session state
+
 **DM**:
 The player role that owns the campaign truth, manages hidden information, controls non-player entities, and can override the shared play state.
 _Avoid_: Admin, host
@@ -141,6 +149,10 @@ _Avoid_: Guest player, anonymous participant
 **Discord Login**:
 The required authentication method where users sign in with Discord before accessing campaigns and sessions.
 _Avoid_: Guest access, email-password login
+
+**Campaign Invitation**:
+An app-generated link or code that grants a Discord-authenticated user access to a specific campaign as a player, independent of any Discord server or guild membership.
+_Avoid_: Discord server invite, guild-based access
 
 **External Voice**:
 The decision to use Discord for live voice communication instead of building voice chat into the web app.
