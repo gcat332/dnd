@@ -32,3 +32,12 @@ When you start a task: add an entry with what you're touching (issue #, files, b
 **Status**: done. Decisions: Vite + React SPA extending the existing `prototypes/battle-map-renderer` stack (no meta-framework migration); Supabase for Postgres/Auth(Discord OAuth)/Realtime/Storage, chosen over Convex/custom-backend despite Supabase's free-tier pause-after-1-week-inactivity risk; realtime sync mixes Postgres Changes + Broadcast + Presence, with rules-affecting actions gated through a Supabase Edge Function (server-authority point for future Tactical Rules Automation, ticket #6).
 **Touched**: issue #3 (resolution comment + closed), issue #1 map (Decisions-so-far, standing decisions, ticket checkbox, graduated one fog line). No CONTEXT.md changes this time (no new domain terms). Committed on `main`.
 **Handoff**: next frontier ticket is #4 "Model campaigns sessions and rules data" (unblocked, no assignee). #9 "Design realtime session state and autosave" is still blocked — needs #4 closed too, not just #3.
+
+---
+
+## 2026-07-11 — Claude Code (4)
+
+**Task**: GitHub #4 "Model campaigns sessions and rules data" (Wayfinder ticket, child of map #1, `wayfinder:grilling`)
+**Status**: done. Decisions: Character scoped to exactly one Campaign (no portability); Battle Map is a reusable Campaign-level resource, not per-Session (enables future AI map generation from campaign story); Rules Object / Homebrew Content scoped to one Campaign (no cross-campaign DM library). Authored full entity model on Postgres/Supabase: Campaign, CampaignMembership, CampaignInvitation, Character, BattleMap, Token, Session, SessionPlan, SessionLog, RulesObject, CampaignDraft. Resolved Session Save and DM View/Player View as derived (not separate stored entities) rather than asking.
+**Touched**: issue #4 (resolution comment + closed), issue #1 map (Decisions-so-far, standing decisions, ticket checkbox, graduated fog, added an Out-of-scope line for character portability/DM library), `CONTEXT.md` (added `Rules Object` term). Committed on `main`.
+**Handoff**: #6 "Design Tactical Rules Automation enforcement", #7 "Scope the Rules Content Editor", and #9 "Design realtime session state and autosave" are all now unblocked (only #8 remains blocked, needs #7 too). Pick any of #6/#7/#9 next.
