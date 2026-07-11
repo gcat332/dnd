@@ -6,7 +6,7 @@ Date: 2026-07-11
 
 The Three.js/React Three Fiber spike passes its functional browser gates but does not pass the measured performance release gates in this environment. The deterministic stress scene contains exactly 200 interactive Token/prop records, representative walls, exactly four total shadow-casting lights (one directional and three point lights), active fog, 24 continuously reissued Token animations, and a concurrent animated particle effect. Adaptive quality settled on `low` for both measured profiles.
 
-The desktop 60 FPS target failed under headless SwiftShader at 16.05 FPS. The tablet 30 FPS target failed in Playwright viewport/DPR emulation at 18.96 FPS. The tablet result is emulated and is not a real-device claim. Physical tablet validation at 30 FPS or better remains an unpassed release gate.
+The desktop 60 FPS target failed under headless SwiftShader at 13.44 FPS. The tablet 30 FPS target failed in Playwright viewport/DPR emulation at 15.69 FPS. These are CI diagnostics collected with a software GPU, not physical-device results. The tablet result is emulated and is not a real-device claim. Physical tablet validation at 30 FPS or better remains an unpassed release gate.
 
 ## Environment
 
@@ -19,12 +19,14 @@ Both rows were collected on macOS 26.5.2. SwiftShader is a software GPU and is n
 
 ## Measurements
 
-Measurements were read after 16 seconds of adaptive-quality settling, then five pointer samples were generated with four clicks and one drag on known `stress-object-050`. The renderer still reported 24 active Token animations at capture. FPS and P95 frame time use the rolling five-second window.
+Measurements were read after 16 seconds of adaptive-quality settling, then five pointer samples were generated with one verified non-zero drag and four click-only selections on rendered `stress-object-050`. The browser test locates the rendered Token pixels near its projected cell hint, requires a distinct drag preview before release, and verifies that the four clicks do not add MoveIntents. The renderer still reported 24 active Token animations at capture. FPS and P95 frame time use the rolling five-second window.
 
-| Device | Quality | Average FPS | P95 frame time | Draw calls | Triangles | Textures | Scene-resource lower bound | P95 chunk latency | P95 pointer-to-rendered-frame latency |
-| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| Headless desktop | low | 16.05 | 79.00 ms | 249 | 26,082 | 31 | 647,156 bytes (0.617 MiB) | 6.00 ms | 6.90 ms |
-| Tablet emulation | low | 18.96 | 70.20 ms | 239 | 24,802 | 31 | 455,668 bytes (0.435 MiB) | 4.60 ms | 5.30 ms |
+| CI diagnostic profile | Quality | Average FPS | P95 frame time | Draw calls | Triangles | Textures | Active 2048px detail textures | Scene-resource lower bound | P95 chunk latency | P95 pointer-to-rendered-frame latency |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Headless desktop | low | 13.44 | 79.50 ms | 249 | 26,082 | 31 | 1 | 17,407,988 bytes (16.602 MiB) | 13.90 ms | 1.10 ms |
+| Tablet emulation | low | 15.69 | 69.30 ms | 238 | 24,674 | 31 | 1 | 17,216,500 bytes (16.419 MiB) | 11.00 ms | 1.00 ms |
+
+The stress/performance path assigns exactly one currently visible detail Render Chunk a maximum-class 2048 x 2048 RGBA `DataTexture`; all other visible detail chunks retain the representative 64 x 64 texture. The first address in the deterministic visible-chunk selection receives the maximum-class texture, so the probe includes its source allocation, upload, and load latency without unrealistically expanding every prefetched chunk to 2048px. Diagnostics traverse scene-referenced textures and confirmed exactly one active 2048px detail texture in both profiles.
 
 The scene-resource value is a defensible lower-bound estimate, not a GPU allocation reading. It traverses the rendered scene, deduplicates `BufferGeometry` objects and their unique attribute/index array buffers, and adds their actual byte lengths. It also deduplicates scene-referenced textures and uses source-data byte lengths when present, otherwise source width x height x actual format channel count x component-type byte width. It excludes driver alignment, uploaded mip levels, shadow/render targets, shader programs, framebuffer storage, and driver bookkeeping, so it must not be interpreted as total GPU memory or a memory PASS result.
 
@@ -50,8 +52,8 @@ The pointer metric measures time from the canvas `pointerdown` handler to the fi
 | Native and forced renderer recovery in three browsers | PASS |
 | Responsive non-overlap/nonblank canvas in three browsers | PASS |
 | Complete Playwright matrix | PASS: 30/30 |
-| Desktop 60 FPS | FAIL in headless SwiftShader: 16.05 FPS |
-| Tablet 30 FPS | FAIL in Playwright emulation: 18.96 FPS |
+| Desktop 60 FPS | FAIL in headless SwiftShader CI diagnostics: 13.44 FPS |
+| Tablet 30 FPS | FAIL in Playwright emulation CI diagnostics: 15.69 FPS |
 | Physical tablet 30 FPS | NOT RUN; unpassed release gate |
 
 ## Reproduction And Warnings
@@ -61,6 +63,8 @@ npm --prefix prototypes/battle-map-renderer run build
 npm --prefix prototypes/battle-map-renderer test
 npm --prefix prototypes/battle-map-renderer run test:e2e
 ```
+
+Playwright's managed server executes `npm run build && npm run preview -- --host 127.0.0.1 --port 4173`, with server reuse disabled, so browser and performance runs profile the production bundle served by Vite preview rather than the development server. The two Chromium measurement contexts used 1440 x 900 at DPR 1 and 820 x 1180 at emulated DPR 2, respectively, against that managed production preview.
 
 The production build retains Vite's warning that the renderer bundle exceeds 500 kB. Browser tests retain React Three Fiber's upstream `THREE.Clock` deprecation warning. Neither warning changes the performance gate failures above.
 

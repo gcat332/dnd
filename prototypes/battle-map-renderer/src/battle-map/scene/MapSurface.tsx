@@ -3,7 +3,12 @@ import { createOverviewTexture } from '../fixtures/createChunkTexture'
 import { MAP_SIZE_CELLS } from '../domain/grid'
 import type { ChunkAddress } from '../domain/chunks'
 import type { MapDetailMode } from '../domain/viewport'
-import { ChunkSurface } from './ChunkSurface'
+import { MAX_CHUNK_TEXTURE_PIXELS } from '../domain/chunks'
+import {
+  ChunkSurface,
+  STANDARD_DETAIL_TEXTURE_SIZE,
+  type ChunkTextureLoader,
+} from './ChunkSurface'
 
 const OVERVIEW_PLANE = new PlaneGeometry(1, 1)
 const OVERVIEW_TEXTURE = createOverviewTexture()
@@ -15,14 +20,30 @@ export function chunkAddressKey(address: ChunkAddress): string {
 type MapSurfaceProps = {
   mode: MapDetailMode
   visibleChunks: readonly ChunkAddress[]
+  maximumClassTextureCount?: number
+  loadTexture?: ChunkTextureLoader
 }
 
-export function MapSurface({ mode, visibleChunks }: MapSurfaceProps) {
+export function MapSurface({
+  mode,
+  visibleChunks,
+  maximumClassTextureCount = 0,
+  loadTexture,
+}: MapSurfaceProps) {
   if (mode === 'detail') {
     return (
       <group name="detail-chunk-surfaces">
-        {visibleChunks.map((address) => (
-          <ChunkSurface key={chunkAddressKey(address)} address={address} />
+        {visibleChunks.map((address, index) => (
+          <ChunkSurface
+            key={chunkAddressKey(address)}
+            address={address}
+            textureSize={
+              index < maximumClassTextureCount
+                ? MAX_CHUNK_TEXTURE_PIXELS
+                : STANDARD_DETAIL_TEXTURE_SIZE
+            }
+            loadTexture={loadTexture}
+          />
         ))}
       </group>
     )

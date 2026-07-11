@@ -78,19 +78,21 @@ export function TokenMesh({ token, onMoveIntent }: TokenMeshProps) {
     const active = activePointer.current
     if (active?.pointerId !== pointerId) return
     const preview = useBattleMapView.getState().dragPreview
-    const to = preview?.tokenId === token.id ? preview.cell : token.cell
+    const to = preview?.tokenId === token.id ? preview.cell : null
     activePointer.current = null
     try {
       active.target.releasePointerCapture(pointerId)
     } catch {
       // WebKit may release capture before its canvas-level pointerup fallback.
     }
-    onMoveIntent({
-      tokenId: token.id,
-      from: token.cell,
-      to,
-      path: straightGridPath(token.cell, to),
-    })
+    if (to && (to.column !== token.cell.column || to.row !== token.cell.row)) {
+      onMoveIntent({
+        tokenId: token.id,
+        from: token.cell,
+        to,
+        path: straightGridPath(token.cell, to),
+      })
+    }
     clearDragPreview()
     invalidate()
   }, [clearDragPreview, invalidate, onMoveIntent, token.cell, token.id])

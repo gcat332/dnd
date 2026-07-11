@@ -255,11 +255,13 @@ type TokenInteractionDiagnosticsProps = {
 
 function TokenInteractionDiagnostics({ moveIntents }: TokenInteractionDiagnosticsProps) {
   const dragPreview = useBattleMapView((state) => state.dragPreview)
+  const selectedTokenId = useBattleMapView((state) => state.selectedTokenId)
   return (
     <output
       hidden
       data-testid="token-interaction-diagnostics"
       data-drag-preview={dragPreview ? JSON.stringify(dragPreview) : ''}
+      data-selected-token-id={selectedTokenId ?? ''}
       data-move-intents={JSON.stringify(moveIntents)}
     />
   )
@@ -342,6 +344,7 @@ const EMPTY_METRICS: SceneMetrics = {
   drawCalls: 0,
   triangles: 0,
   textures: 0,
+  maximumClassDetailTextures: 0,
   dpr: 1,
   p95ChunkLatencyMs: 0,
   p95PointerToRenderedFrameLatencyMs: 0,
@@ -608,6 +611,7 @@ export function BattleMapCanvas() {
         data-particle-scale={qualitySettings.particleScale}
         data-output-processing={qualitySettings.outputProcessing}
         data-object-count={tokens.length}
+        data-maximum-class-detail-texture-count={metrics.maximumClassDetailTextures}
         data-token-checksum={tokenChecksum(tokens)}
         data-interaction-token-point={stressTokenPoint ? JSON.stringify(stressTokenPoint) : ''}
         data-stress-token-point={stressMode && stressTokenPoint ? JSON.stringify(stressTokenPoint) : ''}

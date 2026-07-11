@@ -6,18 +6,27 @@ import { chunkBounds, type ChunkAddress } from '../domain/chunks'
 import { loadChunkWithRetry } from './chunkLoader'
 
 const CELL_TEXTURE_PIXELS = 64
+export const STANDARD_DETAIL_TEXTURE_SIZE = 64
 const UNIT_PLANE = new PlaneGeometry(1, 1)
+
+export type ChunkTextureLoader = (address: ChunkAddress, textureSize: number) => Promise<Texture>
 
 type ChunkSurfaceProps = {
   address: ChunkAddress
-  loadTexture?: (address: ChunkAddress) => Promise<Texture>
+  textureSize?: number
+  loadTexture?: ChunkTextureLoader
 }
 
 type ChunkLoadState = 'loading' | 'ready' | 'failed'
 
-const loadFixtureTexture = async (address: ChunkAddress): Promise<Texture> => createChunkTexture(address)
+const loadFixtureTexture: ChunkTextureLoader = async (address, textureSize) =>
+  createChunkTexture(address, textureSize)
 
-export function ChunkSurface({ address, loadTexture = loadFixtureTexture }: ChunkSurfaceProps) {
+export function ChunkSurface({
+  address,
+  textureSize = STANDARD_DETAIL_TEXTURE_SIZE,
+  loadTexture = loadFixtureTexture,
+}: ChunkSurfaceProps) {
   const invalidate = useThree((state) => state.invalidate)
   const material = useRef<MeshStandardMaterial>(null)
   const [texture, setTexture] = useState<Texture | null>(null)
@@ -33,7 +42,7 @@ export function ChunkSurface({ address, loadTexture = loadFixtureTexture }: Chun
     setTexture(null)
     setLoadState('loading')
 
-    void loadChunkWithRetry(address, loadTexture).then(
+    void loadChunkWithRetry(address, (candidate) => loadTexture(candidate, textureSize)).then(
       (resource) => {
         loadedTexture = resource
         if (!active) {
@@ -61,7 +70,7 @@ export function ChunkSurface({ address, loadTexture = loadFixtureTexture }: Chun
       active = false
       loadedTexture?.dispose()
     }
-  }, [address.column, address.row, invalidate, loadTexture])
+  }, [address.column, address.row, invalidate, loadTexture, textureSize])
 
   useLayoutEffect(() => {
     if (!material.current) return

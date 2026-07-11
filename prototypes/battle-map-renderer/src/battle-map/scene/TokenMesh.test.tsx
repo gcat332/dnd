@@ -42,6 +42,23 @@ beforeEach(() => {
   useBattleMapView.setState(useBattleMapView.getInitialState(), true)
 })
 
+it('selects on click without emitting a zero-distance MoveIntent', async () => {
+  const onMoveIntent = vi.fn<(intent: MoveIntent) => void>()
+  const target = { setPointerCapture: vi.fn(), releasePointerCapture: vi.fn() }
+  const renderer = await ReactThreeTestRenderer.create(
+    <TokenMesh token={TOKEN} onMoveIntent={onMoveIntent} />,
+  )
+  const mesh = renderer.scene.findByProps({ name: `token-${TOKEN.id}` })
+
+  await renderer.fireEvent(mesh, 'pointerDown', pointerEvent(target))
+  await renderer.fireEvent(mesh, 'pointerUp', pointerEvent(target))
+
+  expect(useBattleMapView.getState().selectedTokenId).toBe(TOKEN.id)
+  expect(useBattleMapView.getState().dragPreview).toBeNull()
+  expect(onMoveIntent).not.toHaveBeenCalled()
+  await renderer.unmount()
+})
+
 it.each(['pointerCancel', 'lostPointerCapture'])('%s clears a drag without emitting intent', async (eventName) => {
   const onMoveIntent = vi.fn<(intent: MoveIntent) => void>()
   const target = { setPointerCapture: vi.fn(), releasePointerCapture: vi.fn() }

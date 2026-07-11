@@ -20,4 +20,16 @@ describe('Render Chunks', () => {
   it('rejects a Grid Cell larger than the 2048-pixel cap', () => {
     expect(() => chunkCellSpan(2049)).toThrow(RangeError)
   })
+
+  it.each([
+    { column: Number.NaN, row: 0 },
+    { column: Number.POSITIVE_INFINITY, row: 0 },
+    { column: 0, row: Number.NEGATIVE_INFINITY },
+    { column: 0.5, row: 0 },
+    { column: 0, row: 1.25 },
+    { column: -1, row: 0 },
+    { column: 0, row: -1 },
+  ])('rejects invalid Render Chunk address $column:$row', (address) => {
+    expect(() => chunkBounds(address, 64)).toThrow(RangeError)
+  })
 })

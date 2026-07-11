@@ -28,6 +28,9 @@ export function chunkAddressForCell(cell: GridCell, cellTexturePixels: number): 
 
 export function chunkBounds(address: ChunkAddress, cellTexturePixels: number): ChunkBounds {
   const span = chunkCellSpan(cellTexturePixels)
+  if (!Number.isInteger(address.column) || !Number.isInteger(address.row)) {
+    throw new RangeError('Render Chunk address components must be non-negative integers')
+  }
   const minColumn = address.column * span
   const minRow = address.row * span
   if (minColumn < 0 || minRow < 0 || minColumn >= MAP_SIZE_CELLS || minRow >= MAP_SIZE_CELLS) {

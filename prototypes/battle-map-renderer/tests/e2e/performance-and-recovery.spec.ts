@@ -1,5 +1,37 @@
 import { expect, test } from '@playwright/test'
+import type { Locator } from '@playwright/test'
 import { PNG } from 'pngjs'
+
+type ScreenPoint = Readonly<{ x: number; y: number }>
+
+async function locateGreenTokenNear(canvas: Locator, hint: ScreenPoint): Promise<ScreenPoint> {
+  const box = await canvas.boundingBox()
+  expect(box).not.toBeNull()
+  const image = PNG.sync.read(await canvas.screenshot())
+  const scaleX = image.width / box!.width
+  const scaleY = image.height / box!.height
+  const centerX = hint.x * scaleX
+  const centerY = hint.y * scaleY
+  const radiusX = 30 * scaleX
+  const radiusY = 30 * scaleY
+  const points: ScreenPoint[] = []
+
+  for (let y = Math.max(0, Math.floor(centerY - radiusY)); y <= Math.min(image.height - 1, Math.ceil(centerY + radiusY)); y += 1) {
+    for (let x = Math.max(0, Math.floor(centerX - radiusX)); x <= Math.min(image.width - 1, Math.ceil(centerX + radiusX)); x += 1) {
+      const index = (y * image.width + x) * 4
+      const red = image.data[index]!
+      const green = image.data[index + 1]!
+      const blue = image.data[index + 2]!
+      if (green > 80 && green > red * 1.45 && green > blue * 1.2) points.push({ x, y })
+    }
+  }
+
+  expect(points.length).toBeGreaterThan(10)
+  return {
+    x: points.reduce((total, point) => total + point.x, 0) / points.length / scaleX,
+    y: points.reduce((total, point) => total + point.y, 0) / points.length / scaleY,
+  }
+}
 
 function expectNonblankCanvas(buffer: Buffer): void {
   const image = PNG.sync.read(buffer)
@@ -22,13 +54,16 @@ function hasMinimumColors(buffer: Buffer, minimum: number): boolean {
 }
 
 test('profiles 200 objects, applies low quality, and recovers the committed scene', async ({ page }) => {
-  test.setTimeout(45_000)
+  test.setTimeout(60_000)
   await page.goto('/?stress=1')
   const diagnostics = page.getByTestId('scene-performance-diagnostics')
   const canvas = page.getByTestId('battle-map-canvas')
   const expectedHighDpr = await page.evaluate(() => Math.min(window.devicePixelRatio, 2))
 
   await expect(diagnostics).toHaveAttribute('data-object-count', '200')
+  await expect(diagnostics).toHaveAttribute('data-maximum-class-detail-texture-count', '1', {
+    timeout: 15_000,
+  })
   await expect(page.getByTestId('effects-animation-diagnostics')).toHaveAttribute(
     'data-active-animation-count',
     /[1-9]\d*/,
@@ -60,17 +95,31 @@ test('profiles 200 objects, applies low quality, and recovers the committed scen
   ) as { x: number; y: number }
   const canvasBox = await canvas.boundingBox()
   expect(canvasBox).not.toBeNull()
-  for (let sample = 0; sample < 3; sample += 1) {
-    await page.mouse.click(canvasBox!.x + tokenPoint.x, canvasBox!.y + tokenPoint.y)
-  }
-  await page.mouse.move(canvasBox!.x + tokenPoint.x, canvasBox!.y + tokenPoint.y)
+  const interactionPoint = await locateGreenTokenNear(canvas, tokenPoint)
+  await page.mouse.move(canvasBox!.x + interactionPoint.x, canvasBox!.y + interactionPoint.y)
   await page.mouse.down()
-  await page.mouse.move(canvasBox!.x + tokenPoint.x + 36, canvasBox!.y + tokenPoint.y, { steps: 3 })
+  await expect(page.getByTestId('token-interaction-diagnostics')).toHaveAttribute(
+    'data-selected-token-id',
+    'stress-object-050',
+  )
+  await page.mouse.move(canvasBox!.x + interactionPoint.x + 108, canvasBox!.y + interactionPoint.y, { steps: 4 })
+  await expect(page.getByTestId('token-interaction-diagnostics')).toHaveAttribute(
+    'data-drag-preview',
+    /stress-object-050/,
+  )
   await page.mouse.up()
   await expect(page.getByTestId('token-interaction-diagnostics')).toHaveAttribute(
     'data-move-intents',
     /stress-object-050/,
   )
+  for (let sample = 0; sample < 4; sample += 1) {
+    await page.mouse.click(canvasBox!.x + interactionPoint.x, canvasBox!.y + interactionPoint.y)
+  }
+  const intents = JSON.parse(
+    (await page.getByTestId('token-interaction-diagnostics').getAttribute('data-move-intents')) ?? '[]',
+  ) as Array<{ from: ScreenPoint; to: ScreenPoint }>
+  expect(intents).toHaveLength(1)
+  expect(intents[0]!.to).not.toEqual(intents[0]!.from)
   await expect
     .poll(async () => {
       const current = JSON.parse((await diagnostics.getAttribute('data-metrics')) ?? '{}') as Record<string, number>
@@ -84,8 +133,9 @@ test('profiles 200 objects, applies low quality, and recovers the committed scen
   expect(metrics.drawCalls).toBeGreaterThan(0)
   expect(metrics.triangles).toBeGreaterThan(0)
   expect(metrics.textures).toBeGreaterThanOrEqual(0)
+  expect(metrics.maximumClassDetailTextures).toBe(1)
   expect(metrics.p95ChunkLatencyMs).toBeGreaterThan(0)
-  expect(metrics.sceneResourceBytes).toBeGreaterThan(0)
+  expect(metrics.sceneResourceBytes).toBeGreaterThanOrEqual(2048 * 2048 * 4)
 
   await page.evaluate(() =>
     window.dispatchEvent(new CustomEvent('battle-map:set-quality', { detail: { quality: 'low' } })),

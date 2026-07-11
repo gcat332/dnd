@@ -42,6 +42,7 @@ export type SceneMetrics = Readonly<{
   drawCalls: number
   triangles: number
   textures: number
+  maximumClassDetailTextures: number
   dpr: number
   p95ChunkLatencyMs: number
   p95PointerToRenderedFrameLatencyMs: number
@@ -176,12 +177,17 @@ export function ScenePerformanceMonitor({
       const sceneResourceBytes =
         [...geometries].reduce((sum, geometry) => sum + geometryBytes(geometry), 0) +
         [...textures].reduce((sum, texture) => sum + textureSourceBytes(texture), 0)
+      const maximumClassDetailTextures = [...textures].filter((texture) => {
+        const image = texture.image as { width?: unknown; height?: unknown } | undefined
+        return image?.width === 2048 && image.height === 2048
+      }).length
       onMetrics({
         averageFps: averageFrameTime > 0 ? 1_000 / averageFrameTime : 0,
         p95FrameTimeMs: percentile95(recent),
         drawCalls: gl.info.render.calls,
         triangles: gl.info.render.triangles,
         textures: gl.info.memory.textures,
+        maximumClassDetailTextures,
         dpr: gl.getPixelRatio(),
         p95ChunkLatencyMs: percentile95(chunkLatencies.current),
         p95PointerToRenderedFrameLatencyMs: percentile95(pointerToFrameLatencies.current),

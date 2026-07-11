@@ -59,6 +59,13 @@ function displayedWorldSample(
 }
 
 describe('chunk fixture texture coordinates', () => {
+  it('creates a maximum-class detail texture when explicitly requested', () => {
+    const texture = createChunkTexture({ column: 2, row: 3 }, 2048)
+
+    expect(imageOf(texture)).toMatchObject({ width: 2048, height: 2048 })
+    expect(imageOf(texture).data.byteLength).toBe(2048 * 2048 * 4)
+  })
+
   it('orients adjacent chunk rows from maximum to minimum world Z', () => {
     const north = createChunkTexture({ column: 2, row: 0 })
     const south = createChunkTexture({ column: 2, row: 1 })

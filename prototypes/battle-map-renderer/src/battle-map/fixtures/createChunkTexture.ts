@@ -6,7 +6,7 @@ import {
   SRGBColorSpace,
   UnsignedByteType,
 } from 'three'
-import { chunkBounds, type ChunkAddress } from '../domain/chunks'
+import { MAX_CHUNK_TEXTURE_PIXELS, chunkBounds, type ChunkAddress } from '../domain/chunks'
 import { MAP_SIZE_CELLS } from '../domain/grid'
 
 const CHUNK_TEXTURE_SIZE = 64
@@ -54,13 +54,19 @@ function createTexture(
   return texture
 }
 
-export function createChunkTexture(address: ChunkAddress): DataTexture {
+export function createChunkTexture(
+  address: ChunkAddress,
+  textureSize = CHUNK_TEXTURE_SIZE,
+): DataTexture {
+  if (!Number.isInteger(textureSize) || textureSize <= 0 || textureSize > MAX_CHUNK_TEXTURE_PIXELS) {
+    throw new RangeError('Chunk texture size must be an integer from 1 through 2048 pixels')
+  }
   const bounds = chunkBounds(address, CELL_TEXTURE_PIXELS)
   const width = bounds.maxColumnExclusive - bounds.minColumn
   const depth = bounds.maxRowExclusive - bounds.minRow
-  return createTexture(CHUNK_TEXTURE_SIZE, (x, y) => [
-    bounds.minColumn + ((x + 0.5) / CHUNK_TEXTURE_SIZE) * width,
-    bounds.maxRowExclusive - ((y + 0.5) / CHUNK_TEXTURE_SIZE) * depth,
+  return createTexture(textureSize, (x, y) => [
+    bounds.minColumn + ((x + 0.5) / textureSize) * width,
+    bounds.maxRowExclusive - ((y + 0.5) / textureSize) * depth,
   ])
 }
 

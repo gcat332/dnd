@@ -139,7 +139,11 @@ export function BattleMapScene({
         shadow-mapSize-height={qualitySettings.shadowMapSize}
       />
       <LightLayer lights={lights} shadowMapSize={qualitySettings.shadowMapSize} />
-      <MapSurface mode={mode} visibleChunks={visibleChunks} />
+      <MapSurface
+        mode={mode}
+        visibleChunks={visibleChunks}
+        maximumClassTextureCount={stressEffects ? 1 : 0}
+      />
       <ProceduralGrid />
       <DimensionalTerrain stressWalls={stressWalls} />
       {stressEffects ? <StressEffect particleScale={qualitySettings.particleScale} /> : null}
