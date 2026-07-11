@@ -2,6 +2,7 @@ import type { RouteObject } from 'react-router'
 import { Navigate, Outlet, useLocation } from 'react-router'
 import { LoginPage } from './auth/LoginPage'
 import { useAuthSession } from './auth/useAuthSession'
+import { BattleMapPage } from './battle-maps/BattleMapPage'
 import { CampaignDashboardPage } from './campaigns/CampaignDashboardPage'
 import { CampaignListPage } from './campaigns/CampaignListPage'
 import { JoinCampaignPage } from './campaigns/JoinCampaignPage'
@@ -24,6 +25,7 @@ export const routeConfig: RouteObject[] = [
       { path: '/campaigns', element: <CampaignListPage /> },
       { path: '/campaigns/new', element: <NewCampaignPage /> },
       { path: '/campaigns/:campaignId', element: <CampaignDashboardPage /> },
+      { path: '/campaigns/:campaignId/maps/:mapId', element: <BattleMapPage /> },
       { path: '/join/:code', element: <JoinCampaignPage /> },
     ],
   },
