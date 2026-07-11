@@ -38,6 +38,7 @@ describe('BattleMapPage', () => {
       name: 'Keep — Ground Floor',
       created_by: 'u1',
       created_at: 'now',
+      terrain: [],
     })
 
     renderAt('map-1')
