@@ -15,6 +15,17 @@ const TOKEN: TokenRenderState = {
   visible: true,
 }
 
+const CHARACTER_TOKEN: TokenRenderState = {
+  ...TOKEN,
+  id: 'character-1',
+  character: {
+    recipeId: 'kaykit-knight',
+    animation: 'idle',
+    facingRadians: 0,
+    equipment: { mainHand: 'sword', offHand: 'shield', back: null, head: null },
+  },
+}
+
 beforeEach(() => {
   useBattleMapView.setState(useBattleMapView.getInitialState(), true)
 })
@@ -122,5 +133,15 @@ it('does not let a stale animation override a later committed Token cell', async
     0.25,
     12.5,
   ])
+  await renderer.unmount()
+})
+
+it('uses the character renderer only for tokens with validated character state', async () => {
+  const renderer = await ReactThreeTestRenderer.create(
+    <TokenLayer tokens={[CHARACTER_TOKEN]} onMoveIntent={vi.fn()} />,
+  )
+
+  expect(renderer.scene.findByProps({ name: `character-token-${CHARACTER_TOKEN.id}` })).toBeDefined()
+  expect(renderer.scene.findAllByProps({ name: `token-${CHARACTER_TOKEN.id}` })).toHaveLength(2)
   await renderer.unmount()
 })

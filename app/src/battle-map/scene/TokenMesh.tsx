@@ -15,6 +15,7 @@ const DRAG_POINT = new Vector3()
 type TokenMeshProps = {
   token: TokenRenderState
   onMoveIntent: (intent: MoveIntent) => void
+  interactiveOnly?: boolean
 }
 
 type ActivePointer = {
@@ -42,7 +43,7 @@ function cellUnderPointer(event: ThreeEvent<PointerEvent>) {
   }
 }
 
-export function TokenMesh({ token, onMoveIntent }: TokenMeshProps) {
+export function TokenMesh({ token, onMoveIntent, interactiveOnly = false }: TokenMeshProps) {
   const invalidate = useThree((state) => state.invalidate)
   const camera = useThree((state) => state.camera)
   const gl = useThree((state) => state.gl)
@@ -179,7 +180,7 @@ export function TokenMesh({ token, onMoveIntent }: TokenMeshProps) {
       name={`token-${token.id}`}
       position={[point.x, token.elevation + TOKEN_HEIGHT / 2, point.z]}
       scale={selected ? 1.12 : 1}
-      castShadow
+      castShadow={!interactiveOnly}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
@@ -191,10 +192,12 @@ export function TokenMesh({ token, onMoveIntent }: TokenMeshProps) {
       <meshStandardMaterial
         color={token.color}
         roughness={0.52}
+        transparent={interactiveOnly}
+        opacity={interactiveOnly ? 0 : 1}
         emissive={selected ? token.color : '#000000'}
         emissiveIntensity={selected ? 0.18 : 0}
       />
-      {selected ? (
+      {selected && !interactiveOnly ? (
         <Html
           center
           position={[0, TOKEN_HEIGHT / 2 + 0.3, 0]}
