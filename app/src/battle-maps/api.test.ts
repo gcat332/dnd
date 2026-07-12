@@ -8,7 +8,16 @@ vi.mock('../lib/supabaseClient', () => ({
 }))
 
 import { supabase } from '../lib/supabaseClient'
-import { createBattleMap, getBattleMap, listCampaignBattleMaps, setBattleMapTerrain } from './api'
+import {
+  createBattleMap,
+  createToken,
+  deleteToken,
+  getBattleMap,
+  listBattleMapTokens,
+  listCampaignBattleMaps,
+  moveToken,
+  setBattleMapTerrain,
+} from './api'
 import type { TerrainFeature } from './terrain'
 
 const FIXTURE_TERRAIN: TerrainFeature[] = [
@@ -126,5 +135,84 @@ describe('setBattleMapTerrain', () => {
     await expect(setBattleMapTerrain('map-1', FIXTURE_TERRAIN)).rejects.toThrow(
       'Only the current DM can edit this battle map',
     )
+  })
+})
+
+const FIXTURE_TOKEN = {
+  id: 't1',
+  battle_map_id: 'map-1',
+  label: 'Goblin',
+  color: '#4f9e63',
+  column: 100,
+  row: 100,
+  elevation: 0,
+}
+
+describe('listBattleMapTokens', () => {
+  it('selects tokens for the map and parses them', async () => {
+    const eq = vi.fn().mockResolvedValue({ data: [FIXTURE_TOKEN], error: null })
+    const select = vi.fn().mockReturnValue({ eq })
+    vi.mocked(supabase.from).mockReturnValue({ select } as never)
+
+    const result = await listBattleMapTokens('map-1')
+
+    expect(supabase.from).toHaveBeenCalledWith('tokens')
+    expect(select).toHaveBeenCalledWith('*')
+    expect(eq).toHaveBeenCalledWith('battle_map_id', 'map-1')
+    expect(result).toEqual([FIXTURE_TOKEN])
+  })
+})
+
+describe('createToken', () => {
+  it('calls the create_token RPC with the placement args', async () => {
+    vi.mocked(supabase.rpc).mockResolvedValue({ data: FIXTURE_TOKEN, error: null } as never)
+
+    const result = await createToken('map-1', 'Goblin', '#4f9e63', 100, 100)
+
+    expect(supabase.rpc).toHaveBeenCalledWith('create_token', {
+      p_map_id: 'map-1',
+      p_label: 'Goblin',
+      p_color: '#4f9e63',
+      p_column: 100,
+      p_row: 100,
+    })
+    expect(result).toEqual(FIXTURE_TOKEN)
+  })
+})
+
+describe('moveToken', () => {
+  it('calls the move_token RPC and returns the moved token', async () => {
+    vi.mocked(supabase.rpc).mockResolvedValue({
+      data: { ...FIXTURE_TOKEN, column: 105, row: 108 },
+      error: null,
+    } as never)
+
+    const result = await moveToken('t1', 105, 108)
+
+    expect(supabase.rpc).toHaveBeenCalledWith('move_token', {
+      p_token_id: 't1',
+      p_column: 105,
+      p_row: 108,
+    })
+    expect(result.column).toBe(105)
+  })
+
+  it('throws when the move RPC errors', async () => {
+    vi.mocked(supabase.rpc).mockResolvedValue({
+      data: null,
+      error: { message: 'Only the current DM can move tokens on this battle map' },
+    } as never)
+
+    await expect(moveToken('t1', 1, 1)).rejects.toThrow('Only the current DM can move tokens')
+  })
+})
+
+describe('deleteToken', () => {
+  it('calls the delete_token RPC', async () => {
+    vi.mocked(supabase.rpc).mockResolvedValue({ data: null, error: null } as never)
+
+    await deleteToken('t1')
+
+    expect(supabase.rpc).toHaveBeenCalledWith('delete_token', { p_token_id: 't1' })
   })
 })

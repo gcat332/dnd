@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabaseClient'
 import { parseTerrainFeatures, type TerrainFeature } from './terrain'
+import { parseTokens, type Token } from './tokenModel'
 
 export type BattleMap = {
   id: string
@@ -51,4 +52,49 @@ export async function setBattleMapTerrain(
   })
   if (error) throw new Error(error.message)
   return toBattleMap(data as RawBattleMap)
+}
+
+function toToken(raw: unknown): Token {
+  const [parsed] = parseTokens([raw])
+  if (!parsed) throw new Error('Received a malformed token row from the server')
+  return parsed
+}
+
+export async function listBattleMapTokens(mapId: string): Promise<Token[]> {
+  const { data, error } = await supabase.from('tokens').select('*').eq('battle_map_id', mapId)
+  if (error) throw new Error(error.message)
+  return parseTokens(data)
+}
+
+export async function createToken(
+  mapId: string,
+  label: string,
+  color: string,
+  column: number,
+  row: number,
+): Promise<Token> {
+  const { data, error } = await supabase.rpc('create_token', {
+    p_map_id: mapId,
+    p_label: label,
+    p_color: color,
+    p_column: column,
+    p_row: row,
+  })
+  if (error) throw new Error(error.message)
+  return toToken(data)
+}
+
+export async function moveToken(tokenId: string, column: number, row: number): Promise<Token> {
+  const { data, error } = await supabase.rpc('move_token', {
+    p_token_id: tokenId,
+    p_column: column,
+    p_row: row,
+  })
+  if (error) throw new Error(error.message)
+  return toToken(data)
+}
+
+export async function deleteToken(tokenId: string): Promise<void> {
+  const { error } = await supabase.rpc('delete_token', { p_token_id: tokenId })
+  if (error) throw new Error(error.message)
 }
