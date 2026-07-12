@@ -1,5 +1,5 @@
 import { useFrame, useThree } from '@react-three/fiber'
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Group, Mesh, MeshBasicMaterial } from 'three'
 import { Color } from 'three'
 import {
@@ -33,6 +33,12 @@ const EFFECT_COLORS: Readonly<Record<CharacterEffectId, string>> = {
   heal_pulse: '#78f59c',
 }
 
+const MAX_TIMEOUT_MS = 2_147_483_647
+
+function eventIsActive(event: CharacterPresentationEvent, nowMs: number): boolean {
+  return nowMs >= event.startedAtMs && nowMs < event.startedAtMs + event.durationMs
+}
+
 function lerp(start: number, end: number, progress: number): number {
   return start + (end - start) * progress
 }
@@ -50,7 +56,7 @@ function EffectFrame({ event, particleScale }: EffectProps) {
   const projectile = useRef<Mesh>(null)
   const particlesRoot = useRef<Group>(null)
   const invalidate = useThree((state) => state.invalidate)
-  const [active, setActive] = useState(() => Date.now() < event.startedAtMs + event.durationMs)
+  const [active, setActive] = useState(() => eventIsActive(event, Date.now()))
   const particleCount = Math.max(1, Math.round(16 * Math.max(0, particleScale)))
   const particles = useMemo<readonly Particle[]>(
     () =>
@@ -63,8 +69,35 @@ function EffectFrame({ event, particleScale }: EffectProps) {
     [particleCount],
   )
 
+  useEffect(() => {
+    let cancelled = false
+    let timer: ReturnType<typeof setTimeout> | undefined
+
+    const wake = () => {
+      if (cancelled) return
+      const nowMs = Date.now()
+      if (nowMs < event.startedAtMs) {
+        setActive(false)
+        timer = setTimeout(wake, Math.max(1, Math.min(MAX_TIMEOUT_MS, event.startedAtMs - nowMs)))
+        return
+      }
+      const nextActive = eventIsActive(event, nowMs)
+      setActive(nextActive)
+      if (nextActive) invalidate()
+    }
+
+    // Demand-mode canvases do not run a frame merely because React committed
+    // an effect. Wake the loop for new/updated events and future start times.
+    wake()
+    return () => {
+      cancelled = true
+      if (timer !== undefined) clearTimeout(timer)
+    }
+  }, [event, invalidate, particleScale])
+
   useFrame(() => {
     if (!active) return
+    if (Date.now() < event.startedAtMs) return
     const progress = presentationEventProgress(event, Date.now())
     if (progress >= 1) {
       setActive(false)
@@ -127,7 +160,7 @@ function EffectFrame({ event, particleScale }: EffectProps) {
     invalidate()
   })
 
-  if (!active) return null
+  if (!active || !eventIsActive(event, Date.now())) return null
 
   const effectName = `character-effect-${event.effectId}-${event.id}`
   const coreName = `character-effect-core-${event.effectId}-${event.id}`
