@@ -372,7 +372,11 @@ function isSceneQuality(value: unknown): value is SceneQuality {
   return value === 'high' || value === 'medium' || value === 'low'
 }
 
-export function BattleMapCanvas() {
+type BattleMapCanvasProps = Readonly<{
+  terrainFeatures?: readonly TerrainFeature[]
+}>
+
+export function BattleMapCanvas({ terrainFeatures = FIXTURE_TERRAIN }: BattleMapCanvasProps = {}) {
   const [viewer] = useState<Viewer>(fixtureViewer)
   const [stressMode] = useState(fixtureStressMode)
   const [stressScene] = useState(() => createStressScene(Date.now()))
@@ -496,7 +500,7 @@ export function BattleMapCanvas() {
     (token) => token.visible && token.id === selectedTokenId,
   )
   const fadedTerrainIds = occludingTerrainFeatureIds(
-    FIXTURE_TERRAIN,
+    terrainFeatures,
     selectedVisibleToken,
     cameraView,
   )
@@ -578,7 +582,7 @@ export function BattleMapCanvas() {
           onAnimatedTokenWorldPoint={recordAnimatedTokenPoint}
           onRemoteTokenAnimationComplete={completeRemoteTokenAnimation}
           qualitySettings={qualitySettings}
-          terrainFeatures={FIXTURE_TERRAIN}
+          terrainFeatures={terrainFeatures}
           stressWalls={stressMode ? stressScene.walls : []}
           stressEffects={stressMode}
           onMaximumClassTextureRender={setMaximumClassTextureRender}

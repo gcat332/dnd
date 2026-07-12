@@ -2,8 +2,6 @@ import type { RouteObject } from 'react-router'
 import { Navigate, Outlet, useLocation, useParams } from 'react-router'
 import { LoginPage } from './auth/LoginPage'
 import { useAuthSession } from './auth/useAuthSession'
-import { BattleMapCanvas } from './battle-map/BattleMapCanvas'
-import { BattleMapHarness } from './battle-maps/BattleMapHarness'
 import { BattleMapPage } from './battle-maps/BattleMapPage'
 import { CampaignDashboardPage } from './campaigns/CampaignDashboardPage'
 import { CampaignListPage } from './campaigns/CampaignListPage'
@@ -31,8 +29,20 @@ function BattleMapRoute() {
 export const routeConfig: RouteObject[] = [
   ...(import.meta.env.VITE_BATTLE_MAP_HARNESS === '1'
     ? [
-        { path: '/', element: <BattleMapCanvas /> },
-        { path: '/__harness', element: <BattleMapHarness /> },
+        {
+          path: '/',
+          lazy: async () => {
+            const { BattleMapCanvas } = await import('./battle-map/BattleMapCanvas')
+            return { Component: BattleMapCanvas }
+          },
+        },
+        {
+          path: '/__harness',
+          lazy: async () => {
+            const { BattleMapHarness } = await import('./battle-maps/BattleMapHarness')
+            return { Component: BattleMapHarness }
+          },
+        },
       ]
     : []),
   { path: '/login', element: <LoginPage /> },

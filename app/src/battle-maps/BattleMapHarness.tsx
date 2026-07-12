@@ -31,7 +31,7 @@ export function BattleMapHarness() {
   return (
     <main className="battle-map-harness">
       <div className="battle-map-harness-canvas">
-        <BattleMapCanvas />
+        <BattleMapCanvas terrainFeatures={terrain} />
       </div>
       <TerrainEditorPanel map={map} onTerrainChange={setTerrain} />
     </main>

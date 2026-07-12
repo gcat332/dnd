@@ -13,7 +13,31 @@ async function locateFixtureToken(
     const encoded = await page.getByTestId('scene-performance-diagnostics').getAttribute(
       'data-interaction-token-point',
     )
-    if (encoded) return JSON.parse(encoded) as ScreenPoint
+    if (encoded) {
+      const point = JSON.parse(encoded) as ScreenPoint
+      const box = await canvas.boundingBox()
+      expect(box).not.toBeNull()
+      const image = PNG.sync.read(await canvas.screenshot())
+      const scaleX = image.width / box!.width
+      const scaleY = image.height / box!.height
+      const centerX = point.x * scaleX
+      const centerY = point.y * scaleY
+      await expect.poll(async () => {
+        const current = PNG.sync.read(await canvas.screenshot())
+        let greenPixels = 0
+        for (let y = Math.max(0, Math.floor(centerY - 60 * scaleY)); y <= Math.min(current.height - 1, Math.ceil(centerY + 60 * scaleY)); y += 1) {
+          for (let x = Math.max(0, Math.floor(centerX - 60 * scaleX)); x <= Math.min(current.width - 1, Math.ceil(centerX + 60 * scaleX)); x += 1) {
+            const index = (y * current.width + x) * 4
+            const red = current.data[index]!
+            const green = current.data[index + 1]!
+            const blue = current.data[index + 2]!
+            if (green > 80 && green > red * 1.45 && green > blue * 1.2) greenPixels += 1
+          }
+        }
+        return greenPixels
+      }, { timeout: 10_000 }).toBeGreaterThan(25)
+      return point
+    }
   }
   const image = PNG.sync.read(await canvas.screenshot())
   const points: ScreenPoint[] = []

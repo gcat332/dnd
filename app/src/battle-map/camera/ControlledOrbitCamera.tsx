@@ -126,10 +126,19 @@ export function ControlledOrbitCamera({
       const dx = (event.clientX - previous.x) / camera.zoom
       const dz = (event.clientY - previous.y) / camera.zoom
       previous = { x: event.clientX, y: event.clientY }
-      controls.current.target.x -= dx
-      controls.current.target.z += dz
-      camera.position.x -= dx
-      camera.position.z += dz
+      camera.updateMatrixWorld()
+      const rightX = camera.matrixWorld.elements[0]!
+      const rightZ = camera.matrixWorld.elements[2]!
+      const rightLength = Math.hypot(rightX, rightZ) || 1
+      const forwardX = camera.matrixWorld.elements[8]!
+      const forwardZ = camera.matrixWorld.elements[10]!
+      const forwardLength = Math.hypot(forwardX, forwardZ) || 1
+      const moveX = (-dx * rightX) / rightLength + (dz * forwardX) / forwardLength
+      const moveZ = (-dx * rightZ) / rightLength + (dz * forwardZ) / forwardLength
+      controls.current.target.x += moveX
+      controls.current.target.z += moveZ
+      camera.position.x += moveX
+      camera.position.z += moveZ
       controls.current.update()
       publishView()
     }

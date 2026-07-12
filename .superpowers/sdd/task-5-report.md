@@ -23,7 +23,7 @@ release gate because no physical desktop/tablet device was available here.
   camera-to-token ray. Moving it to row 101 makes the pure ray calculation
   return `fixture-wall` at yaw 0 and clear after orbiting behind it.
 - Focused camera, responsive, Vitest, and production-build checks pass. The
-  complete Playwright rerun remains short by two WebKit pan assertions.
+  complete Playwright matrix passes 51/51 across Chromium, Firefox, and WebKit.
 
 ## Verification
 
