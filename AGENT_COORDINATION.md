@@ -8,6 +8,42 @@ When you start a task: add an entry with what you're touching (issue #, files, b
 
 ---
 
+## 2026-07-12 — Claude Code (CURRENT STATE SNAPSHOT — read this first)
+
+**This supersedes the older "SESSION WRAP-UP" entry further down (accurate only at 2 subsystems / commit `e690f85`).** Everything between here and that old entry is per-task detail; everything below the old entry is deeper history.
+
+**Repo state**: `main` is pushed to `origin` at `9ded19e` (0 commits ahead — fully synced). App at `app/` (Vite + React 19 + Three.js/R3F + Supabase). `npm test` = 213/213, `npm run build` clean. `npm run test:db` = 20/20 (needs Docker + `npx supabase start`). Local Supabase + Docker currently UP.
+
+**Planning (Wayfinder map, issue #1): COMPLETE** — all 9 tickets closed, rebranded **Taleforge** (generic RPG mechanics + 100% original content; V1 theme = old-school JRPG "hero vs. demon lord").
+
+**Implementation shipped — 6 subsystems (Claude Code), each its own plan in `docs/superpowers/plans/` + subagent-driven build, all merged to `main`:**
+1. **Foundation** — Discord OAuth, campaigns/memberships/invitations (`0001`+`0002`).
+2. **Battle Map Integration** — `battle_maps` table (`0003`), list/create UI, `/campaigns/:id/maps/:mapId` route mounting the real 3D scene.
+3. **Terrain Editor** — data-driven `DimensionalTerrain` off a `battle_maps.terrain` jsonb column (`0004`) + a DM terrain editor panel.
+4. **Token Placement** — `tokens` table (`0005`), DM places/drags/removes tokens (persisted), rendered via the existing TokenLayer.
+5. **Rules Content Editor** — `rules_objects` table (`0006`), DM authors/edits/removes **ability**-type content with structured mechanics (Procedural Ability Template MVP) + validation. Only `ability` type wired; 6 other types deferred.
+6. **Dice Roller** — `dice_rolls` table (`0007`), any member rolls by notation, server-authoritative (in-DB `random()`), history panel.
+
+**Established conventions** (follow in future plans): reads via RLS `is_campaign_member`; writes via `SECURITY DEFINER` RPC gateway (DM-only, EXCEPT dice which is member-gated); migrations append-only with inline `GRANT`s to `authenticated`; new integration tests keep `fileParallelism:false`; UI error handling try/catch→setError→`.error-message` on create AND load paths; parse-on-read helpers (`parseTokens`/`parseRulesObjects`/`parseDiceRolls`) coerce malformed rows out; server-authority done via RPC not Edge Function so far (see dice architecture note).
+
+**Concurrent work — Codex** is building the Controlled Orbit Camera (worktree `.worktrees/controlled-orbit-camera`, branch `feat/controlled-orbit-camera`, NOT yet merged) + a Character vertical slice, all in `app/src/battle-map/**` + `characters/` + `public/assets/`. Its planning commits (camera + character plans, CONTEXT.md Battle Map glossary tweak) are already on `main`. Do not touch its files.
+
+**KNOWN GAPS needing a human (not automatable):**
+1. **Discord OAuth app** not set up; `handle_new_user`'s `discord_username` mapping is an unverified guess — verify after a real sign-in, fix via follow-up migration if wrong.
+2. **Hosted Supabase project** not set up (app points at local stack via `app/.env.local`).
+3. **Repo/folder rename** `gcat332/dnd` → Taleforge — flagged, high-blast-radius, needs sign-off.
+4. **OpenAI API key** not set up — blocks AI generation (#8).
+
+**Next subsystem picks (all currently constrained):**
+- **AI generation (#8)** — extends the Rules Content Editor (write abilities with `source='ai-generated'`); blocked on the OpenAI key (gap #4).
+- **Live Session realtime (#9)** / **Tactical Rules Automation (#6)** — both touch the battle-map area Codex is live in; **wait for Codex to merge** before starting, to avoid conflicts.
+- **Advanced Character Sheet** (character DATA/stats, distinct from Codex's character RENDERING) — conceptual overlap with Codex's slice; coordinate first.
+Recommendation: hold battle-map-touching subsystems until Codex merges; do AI generation next once the OpenAI key is provisioned.
+
+**Loose end**: a stray empty `package-lock.json` may reappear at the repo root from a mis-cwd'd `npm install` (real lockfile is `app/package-lock.json`) — safe to delete if it shows up untracked.
+
+---
+
 ## 2026-07-12 — Claude Code (Dice Roller — planning, then build)
 
 **Task**: next subsystem = **Dice Roller** (the "Light Automation" dice feature + issue #9's server-authoritative dice decision). Picked as the remaining vertical that neither collides with Codex's battle-map/camera/character work NOR needs human setup (AI #8 is blocked on an OpenAI key; live-session #9 / tactical-rules #6 touch the battle-map area Codex is live in). Rules Content Editor (#7) just merged (`3b1ffe0`).
@@ -64,9 +100,9 @@ design references only; no application code during planning.
 
 ---
 
-## 2026-07-12 — Claude Code (SESSION WRAP-UP / current state of the whole project)
+## 2026-07-12 — Claude Code (SESSION WRAP-UP / current state — SUPERSEDED)
 
-**Everything below this entry is history.** This is the single "where are we" snapshot — read it first.
+**SUPERSEDED by the "CURRENT STATE SNAPSHOT" entry at the top of this file** (this one was accurate only at 2 subsystems / commit `e690f85`; kept for history). Everything below this entry is deeper history.
 
 **Repo state**: `main` is pushed to `origin` (`e690f85`), working tree clean, no open worktrees/branches. Local Supabase stack stopped; Docker Desktop quit. App lives at `app/` (Vite + React 19 + Three.js/R3F + Supabase). `npm test` = 138/138, `npm run build` clean. Integration tests (`npm run test:db`) need Docker + `npx supabase start` first.
 
