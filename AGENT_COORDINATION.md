@@ -26,7 +26,7 @@ When you start a task: add an entry with what you're touching (issue #, files, b
 
 **Established conventions** (follow in future plans): reads via RLS `is_campaign_member`; writes via `SECURITY DEFINER` RPC gateway (DM-only, EXCEPT dice which is member-gated); migrations append-only with inline `GRANT`s to `authenticated`; new integration tests keep `fileParallelism:false`; UI error handling try/catch→setError→`.error-message` on create AND load paths; parse-on-read helpers (`parseTokens`/`parseRulesObjects`/`parseDiceRolls`) coerce malformed rows out; server-authority done via RPC not Edge Function so far (see dice architecture note).
 
-**Concurrent work — Codex** is building the Controlled Orbit Camera (worktree `.worktrees/controlled-orbit-camera`, branch `feat/controlled-orbit-camera`, NOT yet merged) + a Character vertical slice, all in `app/src/battle-map/**` + `characters/` + `public/assets/`. Its planning commits (camera + character plans, CONTEXT.md Battle Map glossary tweak) are already on `main`. Do not touch its files.
+**Concurrent work — Codex** completed the Controlled Orbit Camera and Character Vertical Slice locally on `main` (`b3f38d0` and merge `2711f15`). Character assets/rendering are now in `app/src/battle-map/characters/**`, `app/public/assets/characters/**`, and presentation effects/e2e files. The character slice is a technical KayKit CC0 probe; physical-device performance and post-fix Firefox/WebKit evidence remain unaccepted release gates. Read `docs/research/character-vertical-slice-results.md` before changing this area.
 
 **KNOWN GAPS needing a human (not automatable):**
 1. **Discord OAuth app** not set up; `handle_new_user`'s `discord_username` mapping is an unverified guess — verify after a real sign-in, fix via follow-up migration if wrong.
@@ -68,10 +68,10 @@ Recommendation: hold battle-map-touching subsystems until Codex merges; do AI ge
 **Task**: execute
 `docs/superpowers/plans/2026-07-12-character-vertical-slice.md`
 with subagent-driven development.
-**Status**: in progress.
-**Touching**: `.worktrees/character-vertical-slice` on
-`feat/character-vertical-slice`; character assets, loaders, equipment,
-presentation VFX, and harness/e2e files listed in the plan.
+**Status**: done as a technical slice; merged locally into `main` as `2711f15`. Automated asset/unit/build/focused Chromium evidence passes. Production acceptance remains blocked on physical desktop/tablet profiling and broader browser evidence.
+**Touching**: `app/src/battle-map/characters/**`, `app/public/assets/characters/**`,
+`app/src/battle-map/effects/**`, and the character acceptance harness/e2e files
+listed in the plan.
 
 ---
 
