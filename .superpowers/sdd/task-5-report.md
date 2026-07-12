@@ -8,7 +8,7 @@ release gate because no physical desktop/tablet device was available here.
 
 ## Commit
 
-`59e2348` (`Harden controlled orbit browser evidence`)
+`cf0107a` (`Support WebKit middle-button panning`)
 
 ## RED / GREEN
 
