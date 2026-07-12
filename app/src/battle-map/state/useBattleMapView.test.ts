@@ -38,3 +38,15 @@ it('publishes a new command for repeated camera preset requests', () => {
   expect(secondCommand?.preset).toBe('north')
   expect(secondCommand?.sequence).not.toBe(firstCommand?.sequence)
 })
+
+it('acknowledges a command without reusing its sequence', () => {
+  useBattleMapView.getState().requestCameraPreset('north')
+  const firstSequence = useBattleMapView.getState().cameraCommand?.sequence
+  if (firstSequence === undefined) throw new Error('expected a camera command')
+
+  useBattleMapView.getState().acknowledgeCameraCommand(firstSequence)
+  expect(useBattleMapView.getState().cameraCommand).toBeNull()
+
+  useBattleMapView.getState().requestCameraPreset('top')
+  expect(useBattleMapView.getState().cameraCommand?.sequence).toBeGreaterThan(firstSequence)
+})

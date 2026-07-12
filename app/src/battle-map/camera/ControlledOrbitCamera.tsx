@@ -37,6 +37,7 @@ export function ControlledOrbitCamera({
   const cameraView = useBattleMapView((state) => state.cameraView)
   const dragPreview = useBattleMapView((state) => state.dragPreview)
   const publishCameraView = useBattleMapView((state) => state.publishCameraView)
+  const acknowledgeCameraCommand = useBattleMapView((state) => state.acknowledgeCameraCommand)
 
   const publishView = useCallback((logicalView?: CameraView) => {
     const target = controls.current?.target
@@ -100,8 +101,9 @@ export function ControlledOrbitCamera({
       lastCameraCommandSequence.current === cameraCommand.sequence
     ) return
     lastCameraCommandSequence.current = cameraCommand.sequence
+    acknowledgeCameraCommand(cameraCommand.sequence)
     applyView(applyCameraPreset(cameraView, cameraCommand.preset))
-  }, [applyView, cameraCommand?.sequence, cameraView])
+  }, [acknowledgeCameraCommand, applyView, cameraCommand, cameraView])
 
   useEffect(() => {
     const preventContextMenu = (event: MouseEvent) => event.preventDefault()
@@ -122,7 +124,7 @@ export function ControlledOrbitCamera({
       screenSpacePanning={false}
       minPolarAngle={0}
       maxPolarAngle={MathUtils.degToRad(55)}
-      mouseButtons={{ LEFT: MOUSE.PAN, MIDDLE: MOUSE.DOLLY, RIGHT: MOUSE.ROTATE }}
+      mouseButtons={{ LEFT: MOUSE.PAN, MIDDLE: MOUSE.PAN, RIGHT: MOUSE.ROTATE }}
       touches={{ ONE: TOUCH.PAN, TWO: TOUCH.DOLLY_ROTATE }}
       onChange={() => publishView()}
     />
