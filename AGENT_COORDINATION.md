@@ -8,6 +8,16 @@ When you start a task: add an entry with what you're touching (issue #, files, b
 
 ---
 
+## 2026-07-12 — Claude Code (Dice Roller — planning, then build)
+
+**Task**: next subsystem = **Dice Roller** (the "Light Automation" dice feature + issue #9's server-authoritative dice decision). Picked as the remaining vertical that neither collides with Codex's battle-map/camera/character work NOR needs human setup (AI #8 is blocked on an OpenAI key; live-session #9 / tactical-rules #6 touch the battle-map area Codex is live in). Rules Content Editor (#7) just merged (`3b1ffe0`).
+**Status**: writing the plan (`docs/superpowers/plans/2026-07-12-taleforge-dice-roller.md`), then subagent-driven build in a `feat/taleforge-dice-roller` worktree.
+**Touches (planned)**: NEW migration `0007_dice_rolls.sql`, new `app/src/dice/**` module + a DiceRollerPanel, `CampaignDashboardPage.tsx` (add a panel). No battle-map/camera/character/rules-content files.
+**ARCHITECTURE NOTE for the human/Codex**: issue #9 said dice route through a Supabase Edge Function. This slice instead computes the roll server-side in a `SECURITY DEFINER` Postgres RPC using in-DB `random()` — genuinely uncheatable/server-authoritative, and consistent with the RPC gateway used by all 5 shipped subsystems, avoiding standing up the first Deno Edge Function. The Edge Function is better deferred to when an external call actually needs it (AI generation, #8). Flagging this deviation to revisit if the human wants the literal Edge-Function path.
+**Distinct pattern**: unlike the DM-only writes so far, `roll_dice` is gated on `is_campaign_member` (ANY member rolls their own dice), not DM ownership.
+
+---
+
 ## 2026-07-12 — Claude Code (Rules Content Editor #7 — planning, then build)
 
 **Task**: next subsystem = **Rules Content Editor** (GitHub #7). Picked to NOT collide with Codex's active camera/character work — it's a separate vertical (new `rules_objects` table + DM-only RPCs + a Content Editor panel on the campaign dashboard). **I will not touch** `app/src/battle-map/**` (camera/scene/DimensionalTerrain/useBattleMapView/BattleMapView), `characters/`, or `public/assets/` — those are Codex's.
