@@ -8,6 +8,15 @@ When you start a task: add an entry with what you're touching (issue #, files, b
 
 ---
 
+## 2026-07-12 — Claude Code (Rules Content Editor #7 — planning, then build)
+
+**Task**: next subsystem = **Rules Content Editor** (GitHub #7). Picked to NOT collide with Codex's active camera/character work — it's a separate vertical (new `rules_objects` table + DM-only RPCs + a Content Editor panel on the campaign dashboard). **I will not touch** `app/src/battle-map/**` (camera/scene/DimensionalTerrain/useBattleMapView/BattleMapView), `characters/`, or `public/assets/` — those are Codex's.
+**Status**: writing the plan (`docs/superpowers/plans/2026-07-12-taleforge-rules-content-editor.md`), then subagent-driven build in a `feat/taleforge-rules-content-editor` worktree.
+**Touches (planned)**: NEW migration `0006_rules_objects.sql`, `app/src/battle-maps/api.ts` (append CRUD — Codex isn't in this file), new `app/src/rules-content/**`, `CampaignDashboardPage.tsx` (add a panel alongside Invite/BattleMap — Codex isn't in campaigns/). No overlap with camera/scene/character files.
+**Heads-up**: just before this, Token Placement merged to main (`4eae36f`). `main` is ~20 commits ahead of origin (not pushed). Stray empty `package-lock.json` at repo root (untracked, from a mis-cwd'd npm install) — safe to delete, left untouched.
+
+---
+
 ## 2026-07-12 — Codex (Controlled Orbit Camera implementation)
 
 **Task**: execute
