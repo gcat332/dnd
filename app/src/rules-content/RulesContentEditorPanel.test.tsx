@@ -66,4 +66,17 @@ describe('RulesContentEditorPanel', () => {
 
     expect(await screen.findByText(/only the current dm can create content/i)).toBeInTheDocument()
   })
+
+  it('does not create ability if mechanics are out of range', async () => {
+    vi.mocked(listCampaignRulesObjects).mockResolvedValue([])
+    vi.mocked(createAbility).mockClear()
+    render(<RulesContentEditorPanel campaignId="c1" />)
+
+    fireEvent.change(await screen.findByLabelText(/ability name/i), { target: { value: 'Bad Ability' } })
+    fireEvent.change(await screen.findByLabelText(/range \(cells\)/i), { target: { value: '999' } })
+    fireEvent.click(screen.getByRole('button', { name: /add ability/i }))
+
+    expect(createAbility).not.toHaveBeenCalled()
+    expect(await screen.findByText(/ability mechanics are out of the allowed range/i)).toBeInTheDocument()
+  })
 })
