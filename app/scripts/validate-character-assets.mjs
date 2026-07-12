@@ -1,11 +1,13 @@
 import { readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { NodeIO } from '@gltf-transform/core';
+import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
+import { MeshoptDecoder } from 'meshoptimizer';
 
 const appRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const assetRoot = path.join(appRoot, 'public/assets/characters');
 const manifest = JSON.parse(await readFile(path.join(assetRoot, 'asset-manifest.json'), 'utf8'));
-const io = new NodeIO();
+const io = new NodeIO().registerExtensions(ALL_EXTENSIONS).registerDependencies({ 'meshopt.decoder': MeshoptDecoder });
 const clips = new Set(['idle', 'move', 'attack', 'hit', 'death']);
 const sockets = ['socket_main_hand', 'socket_off_hand', 'socket_back', 'socket_head'];
 const failures = [];
@@ -23,26 +25,36 @@ async function auditCharacter(record) {
   const document = await io.read(filename);
   const root = document.getRoot();
   const names = new Set(root.listAnimations().map((animation) => animation.getName()));
+  const extraClips = [...names].filter((name) => !clips.has(name));
   const missingClips = [...clips].filter((name) => !names.has(name));
   const missingSockets = sockets.filter((name) => !root.listNodes().some((node) => node.getName() === name));
   const triangles = root.listMeshes().reduce((total, mesh) => total + mesh.listPrimitives().reduce((sum, primitive) => sum + (primitive.getIndices()?.getCount() ?? 0) / 3, 0), 0);
   const materials = new Set(root.listMeshes().flatMap((mesh) => mesh.listPrimitives().map((primitive) => primitive.getMaterial()?.getName())));
   const skins = root.listSkins();
   const maxBones = skins.reduce((max, skin) => Math.max(max, skin.listJoints().length), 0);
+  const maxInfluences = root.listMeshes().flatMap((mesh) => mesh.listPrimitives()).reduce((max, primitive) => {
+    const jointSemantics = primitive.listSemantics().filter((semantic) => /^JOINTS_\d+$/.test(semantic));
+    const weightSemantics = primitive.listSemantics().filter((semantic) => /^WEIGHTS_\d+$/.test(semantic));
+    return Math.max(max, ...jointSemantics.map((semantic) => primitive.getAttribute(semantic)?.getType() === 'VEC4' ? 4 : 0), ...weightSemantics.map((semantic) => primitive.getAttribute(semantic)?.getType() === 'VEC4' ? 4 : 0));
+  }, 0);
+  const influenceSlots = root.listMeshes().flatMap((mesh) => mesh.listPrimitives()).reduce((max, primitive) => Math.max(max, ...primitive.listSemantics().filter((semantic) => /^WEIGHTS_\d+$/.test(semantic)).map((semantic) => Number(semantic.slice('WEIGHTS_'.length)) + 1)), 0) * 4;
   const validAccessors = root.listAccessors().every(finiteAccessor);
   const maxTexture = root.listTextures().reduce((max, texture) => Math.max(max, ...(texture.getSize() ?? [0, 0])), 0);
   const roleLimit = record.role === 'monster' ? 8000 : 12000;
   const byteLimit = record.role === 'monster' ? 1_000_000 : 1_500_000;
   const problems = [
     missingClips.length && `missing clips ${missingClips.join(',')}`,
+    extraClips.length && `extra clips ${extraClips.join(',')}`,
     missingSockets.length && `missing sockets ${missingSockets.join(',')}`,
     triangles > roleLimit && `${Math.round(triangles)} triangles > ${roleLimit}`,
-    root.listMeshes().length > 2 && `${root.listMeshes().length} skinned meshes > 2`,
+    root.listMeshes().filter((mesh) => mesh.listPrimitives().some((primitive) => primitive.listSemantics().some((semantic) => /^JOINTS_\d+$/.test(semantic)))).length > 2 && 'more than 2 skinned meshes',
     materials.size > 2 && `${materials.size} materials > 2`,
     maxBones > (record.role === 'monster' ? 50 : 60) && `${maxBones} bones over limit`,
     bytes > byteLimit && `${bytes} bytes > ${byteLimit}`,
     maxTexture > 512 && `texture ${maxTexture}px > 512px`,
     !validAccessors && 'non-finite accessor values',
+    maxInfluences > 4 && `${maxInfluences} influences per attribute > 4`,
+    influenceSlots > 4 && `${influenceSlots} joint influence slots > 4`,
   ].filter(Boolean);
   if (problems.length) fail(record.id, problems.join('; '));
   else pass(record.id, `${Math.round(triangles)} triangles, ${bytes} bytes, ${names.size} clips, ${skins.length} skin`);
