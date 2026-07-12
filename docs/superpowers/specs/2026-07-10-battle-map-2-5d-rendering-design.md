@@ -5,12 +5,13 @@ Status: Approved for planning
 
 ## Objective
 
-Design the V1 rendering boundary for a top-down Battle Map that remains a
+Design the V1 rendering boundary for a tabletop Battle Map that remains a
 square-grid tabletop while adding elevation, dimensional terrain and tokens,
 dynamic lighting, shadows, fog of war, and animation.
 
 The V1 Battle Map is 2.5D. It is not a freely navigable 3D world. The DM and
-players interact with one top-down tactical coordinate space.
+players interact with one tabletop tactical coordinate space through a
+controlled, freely rotatable viewing camera.
 
 ## V1 Experience
 
@@ -26,11 +27,12 @@ The Battle Map must support:
 - dynamic visual lights and shadows;
 - distance measurement, movement paths, target selection, and circle, cone,
   and line area-effect previews;
-- animated Token movement, effects, and environmental presentation; and
+- animated Token movement, effects, and environmental presentation;
+- a local orthographic camera that orbits the tabletop through 360 degrees; and
 - deterministic integration with Tactical Rules Automation and Session Log.
 
-Marketplace assets are outside V1. A freely rotatable or explorable full-3D
-camera is also outside this design.
+Marketplace assets are outside V1. A ground-level, free-flight, first-person,
+or third-person camera is also outside this design.
 
 ## Rendering Stack
 
@@ -119,6 +121,44 @@ Fog of war is driven by deterministic per-viewer visibility data and presented
 through a texture or polygon mask. Visual lights and shadows may enrich the
 scene, but they do not decide what a player is allowed to see.
 
+## Controlled Orbit Camera
+
+Use an orthographic camera that orbits a focus point on the tabletop. The
+camera provides the feeling of looking across a physical game table without
+turning the Battle Map into a freely navigable 3D world.
+
+The camera contract is:
+
+- yaw rotates continuously through 360 degrees around the table-normal axis;
+- pitch ranges from 35 degrees above the table plane to a 90-degree top view;
+- the default pitch is 55 degrees;
+- zoom changes orthographic scale rather than introducing perspective
+  distortion;
+- pan moves the focus point along the table plane;
+- orbit preserves the focus point and current zoom; and
+- `North`, `Top View`, and `Reset Camera` commands restore predictable views.
+
+Desktop controls use right-drag to orbit, middle-drag to pan, and wheel to
+zoom. Touch controls use two-finger rotate/orbit, pan, and pinch gestures that
+do not conflict with Token selection or movement. Exact gesture recognition is
+validated in the renderer spike rather than delegated to domain state.
+
+Camera position, yaw, pitch, zoom, and focus are local presentation state for
+each participant. They are not synchronized tabletop truth and never alter
+Grid Cell coordinates, Token facing, movement distance, fog permission,
+lighting rules, or line of sight. A future DM focus command may suggest a
+location without taking permanent control of another participant's camera.
+
+Token names, health indicators, status markers, and other tactical labels face
+the camera or use a screen-space overlay so they remain readable throughout an
+orbit. Selection rings remain on the table plane.
+
+Walls and tall props between the camera and the selected or actively moved
+Token use a deterministic local fade or cutaway treatment. This treatment is
+presentation-only: it does not reveal hidden entities, bypass fog, or change
+rules-derived visibility. The renderer must avoid exposing content that the
+current viewer is not permitted to see while calculating occluder fades.
+
 ## Logical Map And Render Chunks
 
 A Battle Map is one logical coordinate space up to 200 by 200 Grid Cells. The
@@ -199,9 +239,18 @@ Before building the complete Battle Map, create a focused spike that proves:
 - representative simultaneous Token and effect animations;
 - interpolation of simulated remote position updates;
 - adaptive pixel ratio and low-quality lighting mode;
+- 360-degree orbit, 35-to-90-degree pitch, orthographic zoom, tabletop pan,
+  camera presets, and desktop/touch gesture separation;
+- readable labels and selection overlays at representative camera angles;
+- local cutaway behavior without leaking fog-hidden content;
 - WebGL context-loss recovery; and
 - nonblank canvas-pixel and screenshot tests on the supported browser/device
   matrix.
+
+The controlled orbit contract was approved after the initial renderer spike.
+Extend that spike with the camera, label-readability, gesture, and cutaway
+evidence above before accepting the renderer for production; the existing
+grid, chunk, fog, interaction, and recovery evidence remains applicable.
 
 Profile the spike with the maximum overview size, representative high-detail
 chunks, 200 active interactive objects, and a realistic number of walls and
@@ -217,6 +266,8 @@ Test deterministic map and rules-facing behavior without WebGL:
 - viewport-to-visible-chunk selection;
 - movement preview and accepted-state transitions;
 - visibility-mask inputs;
+- camera orbit, pitch clamping, pan projection, zoom limits, and preset reset;
+- occluder-fade selection that respects viewer visibility;
 - spatial-index queries; and
 - remote interpolation timing.
 

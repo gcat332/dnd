@@ -6,9 +6,10 @@ Status: Approved for planning
 ## Objective
 
 Define the V1 visual and technical contract for animated 3D characters on the
-top-down 2.5D Battle Map. Characters must read clearly at tactical zoom, retain
-an original colorful Japanese JRPG identity, show equipped weapons in play,
-and remain affordable to render on desktop and tablet.
+2.5D Battle Map. Characters must read clearly at tactical zoom throughout the
+controlled orbit camera, retain an original colorful Japanese JRPG identity,
+show equipped weapons in play, and remain affordable to render on desktop and
+tablet.
 
 This design covers player characters, humanoid NPCs, and representative
 monsters. It does not select a permanent commercial asset catalogue or begin
@@ -24,7 +25,8 @@ Humanoid characters use these principles:
 
 - approximately 5.5 to 6 heads tall;
 - a slightly oversized head, hands, feet, hair, and class-defining equipment;
-- clean shapes and restrained surface detail that remain legible from above;
+- clean shapes and restrained surface detail that remain legible from the
+  supported 35-to-90-degree camera pitch range;
 - saturated faction colors with strong value separation from terrain;
 - distinctive silhouettes for role, faction, and threat level; and
 - original costumes, symbols, weapons, names, and creature designs.
@@ -35,6 +37,8 @@ runtime cost.
 
 Taleforge supplies selection rings, team colors, health indicators, and other
 tactical overlays. These must not be baked into character meshes or textures.
+Labels and upright status presentation face the camera or render in screen
+space; character models and their equipment remain oriented in the world.
 
 ## Sourcing Strategy
 
@@ -182,7 +186,8 @@ remain provisional until measured on representative physical devices.
 5. Export one self-contained GLB per recipe, using Meshopt geometry compression
    and KTX2 textures when representative device tests justify their decoders.
 6. Run glTF validation plus automated budget and contract checks.
-7. Render turntable and top-down reference snapshots for visual regression.
+7. Render turntable, default 55-degree, shallow 35-degree, and top-view
+   reference snapshots for visual regression.
 8. Test download, decode, GPU memory, mixer CPU time, draw calls, shadow cost,
    context restoration, disposal, and tactical readability in the real scene.
 
@@ -205,7 +210,8 @@ The slice must prove:
 - an equipment change driven by accepted character state;
 - melee contact, projectile or spell release, hit, and healing VFX events;
 - original grid position remaining authoritative during animation;
-- readable role and facing at normal and overview zoom;
+- readable role and facing at normal and overview zoom across the supported
+  camera pitch range and representative yaw angles;
 - selection and status overlays remaining readable around the model;
 - compliance with the GLB, texture, material, bone, and draw-call budgets; and
 - desktop plus physical-tablet profiling in the supported Battle Map scene.
@@ -218,7 +224,8 @@ monster pipeline. It does not block the first three-character slice.
 The character pipeline is ready for production planning only when the vertical
 slice demonstrates:
 
-- readable silhouettes and role recognition at supported zoom levels;
+- readable silhouettes and role recognition at supported zoom levels and
+  controlled orbit angles;
 - correct equipment attachments and state-driven swaps;
 - deterministic animation and VFX integration without rules leakage;
 - valid, reproducible asset and licence records;
