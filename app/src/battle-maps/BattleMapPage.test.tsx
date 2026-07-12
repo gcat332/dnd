@@ -21,7 +21,7 @@ vi.mock('./TerrainEditorPanel', () => ({
   TerrainEditorPanel: () => <div data-testid="terrain-editor-panel" />,
 }))
 
-import { getBattleMap, listBattleMapTokens } from './api'
+import { getBattleMap, listBattleMapTokens, moveToken } from './api'
 import { BattleMapPage } from './BattleMapPage'
 
 function renderAt(mapId: string) {
@@ -109,6 +109,95 @@ describe('BattleMapPage', () => {
     await waitFor(() => {
       const lastCall = battleMapViewProps.mock.calls.at(-1)?.[0] as { tokens: unknown[] }
       expect(lastCall.tokens).toHaveLength(1)
+    })
+  })
+
+  describe('token move failures', () => {
+    const sampleIntent = {
+      tokenId: 't1',
+      from: { column: 100, row: 100 },
+      to: { column: 101, row: 100 },
+      path: [],
+    }
+
+    beforeEach(() => {
+      vi.mocked(getBattleMap).mockResolvedValue({
+        id: 'map-1',
+        campaign_id: 'c1',
+        name: 'Map A',
+        created_by: 'u1',
+        created_at: 'now',
+        terrain: [],
+      })
+      vi.mocked(listBattleMapTokens).mockResolvedValue([
+        {
+          id: 't1',
+          battle_map_id: 'map-1',
+          label: 'Goblin',
+          color: '#4f9e63',
+          column: 100,
+          row: 100,
+          elevation: 0,
+        },
+      ])
+      vi.mocked(moveToken).mockReset()
+    })
+
+    it('keeps the map view mounted and shows a move-error message when a move fails, and rolls back the optimistic move', async () => {
+      vi.mocked(moveToken).mockRejectedValue(new Error('Network blip'))
+
+      renderAt('map-1')
+
+      await screen.findByTestId('battle-map-view')
+      const onMoveIntent = (
+        battleMapViewProps.mock.calls.at(-1)?.[0] as { onMoveIntent: (intent: unknown) => void }
+      ).onMoveIntent
+
+      onMoveIntent(sampleIntent)
+
+      expect(await screen.findByText(/couldn't move token: network blip/i)).toBeInTheDocument()
+      // Map view and panels stay mounted; this is not the load-failure screen.
+      expect(screen.getByTestId('battle-map-view')).toBeInTheDocument()
+      expect(screen.getByTestId('terrain-editor-panel')).toBeInTheDocument()
+      expect(screen.queryByText(/failed to load battle map/i)).not.toBeInTheDocument()
+
+      await waitFor(() => {
+        const lastCall = battleMapViewProps.mock.calls.at(-1)?.[0] as {
+          tokens: { id: string; cell: { column: number; row: number } }[]
+        }
+        const moved = lastCall.tokens.find((t) => t.id === 't1')
+        expect(moved?.cell).toEqual({ column: 100, row: 100 })
+      })
+    })
+
+    it('updates the token and shows no error when a move succeeds', async () => {
+      vi.mocked(moveToken).mockResolvedValue({
+        id: 't1',
+        battle_map_id: 'map-1',
+        label: 'Goblin',
+        color: '#4f9e63',
+        column: 101,
+        row: 100,
+        elevation: 0,
+      })
+
+      renderAt('map-1')
+
+      await screen.findByTestId('battle-map-view')
+      const onMoveIntent = (
+        battleMapViewProps.mock.calls.at(-1)?.[0] as { onMoveIntent: (intent: unknown) => void }
+      ).onMoveIntent
+
+      onMoveIntent(sampleIntent)
+
+      await waitFor(() => {
+        const lastCall = battleMapViewProps.mock.calls.at(-1)?.[0] as {
+          tokens: { id: string; cell: { column: number; row: number } }[]
+        }
+        const moved = lastCall.tokens.find((t) => t.id === 't1')
+        expect(moved?.cell).toEqual({ column: 101, row: 100 })
+      })
+      expect(screen.queryByText(/couldn't move token/i)).not.toBeInTheDocument()
     })
   })
 })
