@@ -224,7 +224,7 @@ test('fades the selected Token occluder and clears it after orbiting behind the 
   await expect(tokens).toHaveAttribute('data-selected-token-id', 'fixture-token')
   await expect(camera).toHaveAttribute('data-faded-terrain-ids', 'fixture-wall')
 
-  await drag(page, canvas, 'right', { x: 160, y: box.height / 2 }, { x: 3800, y: box.height / 2 })
+  await drag(page, canvas, 'right', { x: 160, y: box.height / 2 }, { x: 3300, y: box.height / 2 })
   await expect
     .poll(async () => {
       const yaw = normalizedDegrees(Number(await camera.getAttribute('data-yaw')))
