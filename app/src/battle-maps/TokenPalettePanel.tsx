@@ -5,13 +5,14 @@ import type { Token } from './tokenModel'
 type TokenPalettePanelProps = {
   mapId: string
   tokens: Token[]
-  onTokensChange: (tokens: Token[]) => void
+  onTokenAdded: (token: Token) => void
+  onTokenRemoved: (tokenId: string) => void
 }
 
 const DEFAULT_CELL = { column: 100, row: 100 }
 const DEFAULT_COLOR = '#4f7fbf'
 
-export function TokenPalettePanel({ mapId, tokens, onTokensChange }: TokenPalettePanelProps) {
+export function TokenPalettePanel({ mapId, tokens, onTokenAdded, onTokenRemoved }: TokenPalettePanelProps) {
   const [label, setLabel] = useState('')
   const [color, setColor] = useState(DEFAULT_COLOR)
   const [error, setError] = useState<string | null>(null)
@@ -21,7 +22,7 @@ export function TokenPalettePanel({ mapId, tokens, onTokensChange }: TokenPalett
     setError(null)
     try {
       const created = await createToken(mapId, label, color, DEFAULT_CELL.column, DEFAULT_CELL.row)
-      onTokensChange([...tokens, created])
+      onTokenAdded(created)
       setLabel('')
     } catch (err) {
       setError((err as Error).message)
@@ -32,7 +33,7 @@ export function TokenPalettePanel({ mapId, tokens, onTokensChange }: TokenPalett
     setError(null)
     try {
       await deleteToken(id)
-      onTokensChange(tokens.filter((token) => token.id !== id))
+      onTokenRemoved(id)
     } catch (err) {
       setError((err as Error).message)
     }

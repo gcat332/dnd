@@ -76,7 +76,12 @@ export function BattleMapPage() {
         onMoveIntent={handleMoveIntent}
       />
       <TerrainEditorPanel map={map} onTerrainChange={setTerrain} />
-      <TokenPalettePanel mapId={map.id} tokens={tokens} onTokensChange={setTokens} />
+      <TokenPalettePanel
+        mapId={map.id}
+        tokens={tokens}
+        onTokenAdded={(token) => setTokens((current) => [...current, token])}
+        onTokenRemoved={(id) => setTokens((current) => current.filter((token) => token.id !== id))}
+      />
     </main>
   )
 }

@@ -24,15 +24,29 @@ const GOBLIN: Token = {
 
 describe('TokenPalettePanel', () => {
   it('lists tokens with a remove control', () => {
-    render(<TokenPalettePanel mapId="map-1" tokens={[GOBLIN]} onTokensChange={vi.fn()} />)
+    render(
+      <TokenPalettePanel
+        mapId="map-1"
+        tokens={[GOBLIN]}
+        onTokenAdded={vi.fn()}
+        onTokenRemoved={vi.fn()}
+      />,
+    )
     expect(screen.getByText(/goblin/i, { selector: 'li' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /remove/i })).toBeInTheDocument()
   })
 
-  it('adds a token, persists via createToken, and reports the new list up', async () => {
+  it('adds a token, persists via createToken, and reports the created token up', async () => {
     vi.mocked(createToken).mockResolvedValue(GOBLIN)
-    const onTokensChange = vi.fn()
-    render(<TokenPalettePanel mapId="map-1" tokens={[]} onTokensChange={onTokensChange} />)
+    const onTokenAdded = vi.fn()
+    render(
+      <TokenPalettePanel
+        mapId="map-1"
+        tokens={[]}
+        onTokenAdded={onTokenAdded}
+        onTokenRemoved={vi.fn()}
+      />,
+    )
 
     fireEvent.change(screen.getByLabelText(/label/i), { target: { value: 'Goblin' } })
     fireEvent.click(screen.getByRole('button', { name: /add token/i }))
@@ -40,29 +54,45 @@ describe('TokenPalettePanel', () => {
     await waitFor(() =>
       expect(createToken).toHaveBeenCalledWith('map-1', 'Goblin', expect.any(String), 100, 100),
     )
-    expect(onTokensChange).toHaveBeenCalledWith([GOBLIN])
+    expect(onTokenAdded).toHaveBeenCalledWith(GOBLIN)
   })
 
-  it('removes a token via deleteToken and reports the new list up', async () => {
+  it('removes a token via deleteToken and reports the removed id up', async () => {
     vi.mocked(deleteToken).mockResolvedValue(undefined)
-    const onTokensChange = vi.fn()
-    render(<TokenPalettePanel mapId="map-1" tokens={[GOBLIN]} onTokensChange={onTokensChange} />)
+    const onTokenRemoved = vi.fn()
+    render(
+      <TokenPalettePanel
+        mapId="map-1"
+        tokens={[GOBLIN]}
+        onTokenAdded={vi.fn()}
+        onTokenRemoved={onTokenRemoved}
+      />,
+    )
 
     fireEvent.click(screen.getByRole('button', { name: /remove/i }))
 
     await waitFor(() => expect(deleteToken).toHaveBeenCalledWith('t1'))
-    expect(onTokensChange).toHaveBeenCalledWith([])
+    expect(onTokenRemoved).toHaveBeenCalledWith('t1')
   })
 
   it('shows an error when adding fails', async () => {
     vi.mocked(createToken).mockRejectedValueOnce(
       new Error('Only the current DM can add tokens to this battle map'),
     )
-    render(<TokenPalettePanel mapId="map-1" tokens={[]} onTokensChange={vi.fn()} />)
+    const onTokenAdded = vi.fn()
+    render(
+      <TokenPalettePanel
+        mapId="map-1"
+        tokens={[]}
+        onTokenAdded={onTokenAdded}
+        onTokenRemoved={vi.fn()}
+      />,
+    )
 
     fireEvent.change(screen.getByLabelText(/label/i), { target: { value: 'X' } })
     fireEvent.click(screen.getByRole('button', { name: /add token/i }))
 
     expect(await screen.findByText(/only the current dm can add tokens/i)).toBeInTheDocument()
+    expect(onTokenAdded).not.toHaveBeenCalled()
   })
 })
