@@ -57,9 +57,10 @@ The shared tabletop view for non-DM players, limited to information their charac
 _Avoid_: Public mode, guest view
 
 **Battle Map**:
-A square-grid tactical play space presented top-down in 2.5D, with elevation,
-dimensional terrain and tokens, lighting, shadows, and animation while
-remaining one map coordinate space rather than a freely navigable 3D world.
+A square-grid tactical play space presented as a 2.5D tabletop through an
+adjustable orthographic view, with elevation, dimensional terrain and tokens,
+lighting, shadows, and animation while remaining one map coordinate space
+rather than a freely navigable 3D world.
 _Avoid_: Whiteboard, canvas, full-3D world
 
 **Grid Cell**:

@@ -8,6 +8,17 @@ When you start a task: add an entry with what you're touching (issue #, files, b
 
 ---
 
+## 2026-07-12 — Codex (controlled orbit and character planning)
+
+**Task**: write separate implementation plans for the approved 360-degree
+Controlled Orbit camera extension and JRPG Character vertical slice.
+**Status**: done. Added both plans, aligned the Battle Map glossary with the
+adjustable orthographic view, and wrote no application code.
+**Touching**: `CONTEXT.md`, `docs/superpowers/plans/`, and camera/character
+design references only; no application code during planning.
+
+---
+
 ## 2026-07-12 — Claude Code (SESSION WRAP-UP / current state of the whole project)
 
 **Everything below this entry is history.** This is the single "where are we" snapshot — read it first.
