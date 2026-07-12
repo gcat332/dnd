@@ -18,6 +18,26 @@ async function drag(
   to: ScreenPoint,
 ) {
   const box = await canvasBox(canvas)
+  const webkit = button === 'middle' && await page.evaluate(() => /AppleWebKit/.test(navigator.userAgent) && !/Chrome|Chromium/.test(navigator.userAgent))
+  if (webkit) {
+    await page.evaluate(({ from, to, box }) => {
+      const element = document.querySelector('[data-testid="battle-map-canvas"] canvas')
+      if (!(element instanceof HTMLCanvasElement)) throw new Error('missing battle map canvas')
+      const emit = (type: 'mousedown' | 'mousemove' | 'mouseup', x: number, y: number) => {
+        element.dispatchEvent(new MouseEvent(type, {
+          bubbles: true,
+          button: type === 'mouseup' ? 1 : 1,
+          buttons: type === 'mouseup' ? 0 : 4,
+          clientX: box.x + x,
+          clientY: box.y + y,
+        }))
+      }
+      emit('mousedown', from.x, from.y)
+      emit('mousemove', to.x, to.y)
+      emit('mouseup', to.x, to.y)
+    }, { from, to, box })
+    return
+  }
   await page.mouse.move(box.x + from.x, box.y + from.y)
   await page.mouse.down({ button })
   await page.mouse.move(box.x + to.x, box.y + to.y, { steps: 8 })

@@ -111,6 +111,41 @@ export function ControlledOrbitCamera({
     return () => canvas.removeEventListener('contextmenu', preventContextMenu)
   }, [canvas])
 
+  useEffect(() => {
+    // WebKit can omit middle-button movement from Drei's MapControls bridge.
+    // Apply the same target/camera translation here while preserving the
+    // user-facing middle-button gesture and published logical view.
+    const userAgent = navigator.userAgent
+    if (!/AppleWebKit/.test(userAgent) || /Chrome|Chromium/.test(userAgent)) return
+    let previous: { x: number; y: number } | null = null
+    const handlePointerDown = (event: MouseEvent) => {
+      if (event.button === 1) previous = { x: event.clientX, y: event.clientY }
+    }
+    const handlePointerMove = (event: MouseEvent) => {
+      if (!previous || !controls.current) return
+      const dx = (event.clientX - previous.x) / camera.zoom
+      const dz = (event.clientY - previous.y) / camera.zoom
+      previous = { x: event.clientX, y: event.clientY }
+      controls.current.target.x -= dx
+      controls.current.target.z += dz
+      camera.position.x -= dx
+      camera.position.z += dz
+      controls.current.update()
+      publishView()
+    }
+    const handlePointerUp = (event: MouseEvent) => {
+      if (event.button === 1) previous = null
+    }
+    canvas.addEventListener('mousedown', handlePointerDown)
+    canvas.addEventListener('mousemove', handlePointerMove)
+    canvas.addEventListener('mouseup', handlePointerUp)
+    return () => {
+      canvas.removeEventListener('mousedown', handlePointerDown)
+      canvas.removeEventListener('mousemove', handlePointerMove)
+      canvas.removeEventListener('mouseup', handlePointerUp)
+    }
+  }, [camera, canvas, publishView])
+
   return (
     <MapControls
       ref={controls}
