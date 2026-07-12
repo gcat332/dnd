@@ -8,6 +8,10 @@ import type { AreaTemplate } from '../domain/effects'
 import { MAP_SIZE_CELLS, type WorldPoint } from '../domain/grid'
 import type { MoveIntent, TokenRenderState } from '../domain/tokens'
 import type { VisibilityGrid } from '../domain/visibility'
+import { CharacterEffects } from '../effects/CharacterEffects'
+import type { CharacterPresentationEvent } from '../effects/presentationEvents'
+import type { CharacterRenderDiagnostics } from '../characters/CharacterModel'
+import type { CharacterPresentationState } from '../characters/contract'
 import type { StressWall } from '../fixtures/createStressScene'
 import type { SceneQualitySettings } from '../performance/quality'
 import {
@@ -71,9 +75,12 @@ type BattleMapSceneProps = {
   visibility?: VisibilityGrid
   lights?: readonly VisualLight[]
   targetTemplate?: AreaTemplate | null
+  presentationEvents?: readonly CharacterPresentationEvent[]
   remoteTokenAnimations?: readonly RemoteTokenAnimation[]
   onAnimatedTokenWorldPoint?: (tokenId: string, point: WorldPoint) => void
   onRemoteTokenAnimationComplete?: (animation: RemoteTokenAnimation) => void
+  onCharacterAttackEvent?: (tokenId: string, state: CharacterPresentationState) => void
+  onCharacterDiagnostics?: (tokenId: string, diagnostics: CharacterRenderDiagnostics) => void
   qualitySettings?: SceneQualitySettings
   terrainFeatures?: readonly TerrainFeature[]
   stressWalls?: readonly StressWall[]
@@ -84,6 +91,7 @@ type BattleMapSceneProps = {
 const NO_TOKENS: readonly TokenRenderState[] = []
 const NO_LIGHTS: readonly VisualLight[] = []
 const NO_TERRAIN: readonly TerrainFeature[] = []
+const NO_PRESENTATION_EVENTS: readonly CharacterPresentationEvent[] = []
 const ALL_VISIBLE: VisibilityGrid = {
   width: MAP_SIZE_CELLS,
   height: MAP_SIZE_CELLS,
@@ -125,9 +133,12 @@ export function BattleMapScene({
   visibility = ALL_VISIBLE,
   lights = NO_LIGHTS,
   targetTemplate = null,
+  presentationEvents = NO_PRESENTATION_EVENTS,
   remoteTokenAnimations = [],
   onAnimatedTokenWorldPoint,
   onRemoteTokenAnimationComplete,
+  onCharacterAttackEvent,
+  onCharacterDiagnostics,
   qualitySettings = DEFAULT_QUALITY,
   terrainFeatures = NO_TERRAIN,
   stressWalls = [],
@@ -142,6 +153,10 @@ export function BattleMapScene({
   const selectedVisibleToken = useMemo(
     () => tokens.filter((token) => token.visible).find((token) => token.id === selectedTokenId),
     [selectedTokenId, tokens],
+  )
+  const visibleTokenIds = useMemo(
+    () => new Set(tokens.filter((token) => token.visible).map((token) => token.id)),
+    [tokens],
   )
   const fadedFeatureIds = useMemo(
     () => occludingTerrainFeatureIds(terrainFeatures, selectedVisibleToken, cameraView),
@@ -185,6 +200,13 @@ export function BattleMapScene({
         remoteTokenAnimations={remoteTokenAnimations}
         onAnimatedTokenWorldPoint={onAnimatedTokenWorldPoint}
         onRemoteTokenAnimationComplete={onRemoteTokenAnimationComplete}
+        onCharacterAttackEvent={onCharacterAttackEvent}
+        onCharacterDiagnostics={onCharacterDiagnostics}
+      />
+      <CharacterEffects
+        events={presentationEvents}
+        visibleTokenIds={visibleTokenIds}
+        particleScale={qualitySettings.particleScale}
       />
       <VisibilityLayer mode={mode} grid={visibility} visibleChunks={visibleChunks} />
     </>

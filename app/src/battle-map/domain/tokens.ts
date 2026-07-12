@@ -1,4 +1,5 @@
 import type { GridCell } from './grid'
+import type { CharacterPresentationState } from '../characters/contract'
 
 export type TokenRenderState = Readonly<{
   id: string
@@ -7,6 +8,7 @@ export type TokenRenderState = Readonly<{
   elevation: number
   color: string
   visible: boolean
+  character?: CharacterPresentationState
 }>
 
 export type MoveIntent = Readonly<{
