@@ -60,6 +60,7 @@ export function CharacterToken({
     <group name={`character-token-${token.id}`}>
       <TokenMesh token={token} onMoveIntent={onMoveIntent} interactiveOnly />
       <CharacterFallbackBoundary
+        key={state.recipeId}
         fallback={<TokenMesh token={token} onMoveIntent={onMoveIntent} />}
       >
         <Suspense fallback={<TokenMesh token={token} onMoveIntent={onMoveIntent} />}>

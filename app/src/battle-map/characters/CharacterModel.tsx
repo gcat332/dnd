@@ -107,6 +107,7 @@ export function CharacterModel({ state, onAttackEvent, onAnimationComplete }: Ch
   const animations = loaded.animations ?? []
   const sceneRef = useRef<Object3D>(null)
   const { actions, mixer } = useAnimations(animations as AnimationClip[], sceneRef)
+  const invalidate = useThree((state) => state.invalidate)
   const activeAction = useRef<AnimationAction | null>(null)
   const previousTime = useRef(0)
   const attackEventFired = useRef(false)
@@ -131,7 +132,10 @@ export function CharacterModel({ state, onAttackEvent, onAnimationComplete }: Ch
     previousTime.current = state.animation === 'attack' ? Number.NEGATIVE_INFINITY : 0
     attackEventFired.current = false
     animationComplete.current = false
-  }, [actions, recipe.id, state.animation])
+    // The battle map intentionally uses demand rendering. Kick the first frame
+    // so the mixer can advance, after which useFrame keeps the animation alive.
+    invalidate()
+  }, [actions, invalidate, recipe.id, state.animation])
 
   useEffect(() => {
     const action = actions[state.animation]
@@ -147,14 +151,20 @@ export function CharacterModel({ state, onAttackEvent, onAnimationComplete }: Ch
 
   useFrame(() => {
     const action = activeAction.current
-    if (!action || state.animation !== 'attack' || attackEventFired.current) return
-    const duration = action.getClip().duration
-    const marker = recipe.attackEventTime * duration
-    if (previousTime.current < marker && action.time >= marker) {
-      attackEventFired.current = true
-      onAttackEvent?.(state)
+    if (!action) return
+
+    const isRepeating = state.animation === 'idle' || state.animation === 'move'
+    if (action.isRunning() && (isRepeating || !animationComplete.current)) invalidate()
+
+    if (state.animation === 'attack' && !attackEventFired.current) {
+      const duration = action.getClip().duration
+      const marker = recipe.attackEventTime * duration
+      if (previousTime.current < marker && action.time >= marker) {
+        attackEventFired.current = true
+        onAttackEvent?.(state)
+      }
+      previousTime.current = action.time
     }
-    previousTime.current = action.time
   })
 
   return (
