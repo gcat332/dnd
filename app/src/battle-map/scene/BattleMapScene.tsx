@@ -56,11 +56,11 @@ export function sceneSelection(cameraCenter: { x: number; z: number }, visibleCe
 }
 
 export function useSceneSelection(): SceneSelection {
-  const cameraCenter = useBattleMapView((state) => state.cameraCenter)
+  const cameraFocus = useBattleMapView((state) => state.cameraView.focus)
   const visibleCellSpan = useBattleMapView((state) => state.visibleCellSpan)
   return useMemo(
-    () => sceneSelection(cameraCenter, visibleCellSpan),
-    [cameraCenter, visibleCellSpan],
+    () => sceneSelection(cameraFocus, visibleCellSpan),
+    [cameraFocus, visibleCellSpan],
   )
 }
 

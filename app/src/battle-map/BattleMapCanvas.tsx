@@ -3,6 +3,7 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Vector3 } from 'three'
 import type { MapControls as MapControlsImpl } from 'three-stdlib'
+import { cameraViewFromPosition } from './camera/cameraView'
 import { cellsCoveredByTemplate, type AreaTemplate } from './domain/effects'
 import { MAP_SIZE_CELLS, type GridCell, type WorldPoint } from './domain/grid'
 import type { MoveIntent, TokenRenderState } from './domain/tokens'
@@ -187,14 +188,19 @@ function BattleMapCamera({
   const camera = useThree((state) => state.camera)
   const size = useThree((state) => state.size)
   const invalidate = useThree((state) => state.invalidate)
-  const setCamera = useBattleMapView((state) => state.setCamera)
+  const publishCameraView = useBattleMapView((state) => state.publishCameraView)
   const dragPreview = useBattleMapView((state) => state.dragPreview)
 
   const syncViewState = useCallback((publishProbePoints = true) => {
     const target = controls.current?.target
+    const focus = target ? { x: target.x, z: target.z } : { x: 100, z: 100 }
     const visibleCellSpan = Math.max(size.width, size.height) / camera.zoom
-    setCamera(
-      target ? { x: target.x, z: target.z } : { x: 100, z: 100 },
+    publishCameraView(
+      cameraViewFromPosition(
+        [camera.position.x, camera.position.y, camera.position.z],
+        focus,
+        camera.zoom,
+      ),
       visibleCellSpan,
     )
     camera.updateMatrixWorld()
@@ -215,7 +221,7 @@ function BattleMapCamera({
       onStressTokenPoint(stressTokenCell ? projectCell(stressTokenCell) : null)
     }
     invalidate()
-  }, [camera, invalidate, onStressTokenPoint, onVisibilityProbePoints, setCamera, size.height, size.width, stressTokenCell])
+  }, [camera, invalidate, onStressTokenPoint, onVisibilityProbePoints, publishCameraView, size.height, size.width, stressTokenCell])
 
   useEffect(() => {
     syncViewState(false)

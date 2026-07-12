@@ -1,5 +1,6 @@
 import ReactThreeTestRenderer from '@react-three/test-renderer'
 import { beforeEach, expect, it } from 'vitest'
+import { DEFAULT_CAMERA_VIEW } from '../camera/cameraView'
 import type { AreaTemplate } from '../domain/effects'
 import type { VisibilityGrid } from '../domain/visibility'
 import { useBattleMapView } from '../state/useBattleMapView'
@@ -60,7 +61,10 @@ it('builds overview map and visibility layers', async () => {
 })
 
 it('builds matching detail map and visibility chunk layers', async () => {
-  useBattleMapView.getState().setCamera({ x: 100, z: 100 }, 48)
+  useBattleMapView.getState().publishCameraView(
+    { ...DEFAULT_CAMERA_VIEW, focus: { x: 100, z: 100 } },
+    48,
+  )
   const renderer = await ReactThreeTestRenderer.create(
     <BattleMapScene visibility={VISIBILITY} lights={LIGHTS} />,
   )
