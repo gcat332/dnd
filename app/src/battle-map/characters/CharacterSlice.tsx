@@ -7,6 +7,7 @@ import {
   type CharacterPresentationEvent,
 } from '../effects/presentationEvents'
 import type { CharacterAnimationName, CharacterPresentationState, EquippedVisuals } from './contract'
+import type { CharacterRenderDiagnostics } from './CharacterModel'
 
 const EMPTY_EVENTS: readonly CharacterPresentationEvent[] = []
 const EMPTY_TOKENS: readonly TokenRenderState[] = []
@@ -76,6 +77,19 @@ export type CharacterSliceState = Readonly<{
   tokens: readonly TokenRenderState[]
   presentationEvents: readonly CharacterPresentationEvent[]
   diagnostics: CharacterSliceDiagnostics
+  rendererByToken: Readonly<Record<string, RendererTokenState>>
+}>
+
+export type CharacterSliceRuntime = CharacterSliceState & Readonly<{
+  recordCharacterDiagnostics: (tokenId: string, report: CharacterRenderDiagnostics) => void
+  recordCharacterAttackEvent: (tokenId: string, state: CharacterPresentationState) => void
+}>
+
+type RendererTokenState = Readonly<{
+  loadedRecipeIds: readonly string[]
+  mixerReady: boolean
+  assetErrors: readonly string[]
+  optionalFallbacks: number
 }>
 
 type SliceAction =
@@ -246,6 +260,27 @@ function applyAction(
       mixerCount: nextTokens.filter((token) => token.character).length,
       animationTransitions: transitions,
     },
+    rendererByToken: current.rendererByToken,
+  }
+}
+
+function applyPresentationEvent(
+  current: CharacterSliceState,
+  event: CharacterPresentationEvent,
+): CharacterSliceState {
+  const nowMs = Date.now()
+  const nextEvents = reducePresentationEvents(current.presentationEvents, [event], nowMs)
+  const emittedEventIds = current.diagnostics.emittedEventIds.includes(event.id)
+    ? current.diagnostics.emittedEventIds
+    : [...current.diagnostics.emittedEventIds, event.id]
+  return {
+    ...current,
+    presentationEvents: nextEvents,
+    diagnostics: {
+      ...current.diagnostics,
+      emittedEventIds,
+      activeEventIds: nextEvents.map((candidate) => candidate.id),
+    },
   }
 }
 
@@ -262,7 +297,7 @@ function createSliceState(stress: boolean): CharacterSliceState {
     tokens,
     presentationEvents: EMPTY_EVENTS,
     diagnostics: {
-      loadedRecipeIds: [...new Set(tokens.flatMap((token) => token.character?.recipeId ?? []))],
+      loadedRecipeIds: [],
       currentAnimations,
       equippedIds,
       emittedEventIds: [],
@@ -272,6 +307,7 @@ function createSliceState(stress: boolean): CharacterSliceState {
       optionalFallbackCount: 0,
       animationTransitions: 0,
     },
+    rendererByToken: {},
   }
 }
 
@@ -279,12 +315,13 @@ export function characterSliceEnabled(search = typeof window === 'undefined' ? '
   return new URLSearchParams(search).get('characters') === '1'
 }
 
-export function useCharacterSlice(enabled: boolean): CharacterSliceState {
+export function useCharacterSlice(enabled: boolean): CharacterSliceRuntime {
   const stress = enabled && (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('stress') === '1')
   const [slice, setSlice] = useState<CharacterSliceState>(() => (enabled ? createSliceState(stress) : {
     tokens: EMPTY_TOKENS,
     presentationEvents: EMPTY_EVENTS,
     diagnostics: EMPTY_DIAGNOSTICS,
+    rendererByToken: {},
   }))
   const sequence = useRef(0)
   const scheduled = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
@@ -296,8 +333,64 @@ export function useCharacterSlice(enabled: boolean): CharacterSliceState {
     })
   }, [])
 
+  const recordCharacterDiagnostics = useCallback((tokenId: string, report: CharacterRenderDiagnostics) => {
+    setSlice((current) => {
+      const previous = current.rendererByToken[tokenId] ?? {
+        loadedRecipeIds: [],
+        mixerReady: false,
+        assetErrors: [],
+        optionalFallbacks: 0,
+      }
+      const loadedRecipeIds = report.loaded && !previous.loadedRecipeIds.includes(report.recipeId)
+        ? [...previous.loadedRecipeIds, report.recipeId]
+        : previous.loadedRecipeIds
+      const assetErrors = report.assetError && !previous.assetErrors.includes(report.assetError)
+        ? [...previous.assetErrors, report.assetError]
+        : previous.assetErrors
+      const rendererByToken = {
+        ...current.rendererByToken,
+        [tokenId]: {
+          loadedRecipeIds,
+          mixerReady: previous.mixerReady || report.mixerReady,
+          assetErrors,
+          optionalFallbacks: previous.optionalFallbacks + (report.optionalFallback && report.assetError && !previous.assetErrors.includes(report.assetError) ? 1 : 0),
+        },
+      }
+      const loadedRecipeIdsInTokenOrder = [...new Set(current.tokens.flatMap((token) => rendererByToken[token.id]?.loadedRecipeIds ?? []))]
+      return {
+        ...current,
+        rendererByToken,
+        diagnostics: {
+          ...current.diagnostics,
+          loadedRecipeIds: loadedRecipeIdsInTokenOrder,
+          mixerCount: Object.values(rendererByToken).filter((entry) => entry.mixerReady).length,
+          assetErrorCount: Object.values(rendererByToken).reduce((sum, entry) => sum + entry.assetErrors.length, 0),
+          optionalFallbackCount: Object.values(rendererByToken).reduce((sum, entry) => sum + entry.optionalFallbacks, 0),
+        },
+      }
+    })
+  }, [])
+
+  const recordCharacterAttackEvent = useCallback((tokenId: string, _state: CharacterPresentationState) => {
+    setSlice((current) => {
+      const target = current.tokens.find((token) => token.character && token.id !== tokenId)
+      const event = makeEvent(
+        'melee_slash',
+        tokenId,
+        target?.id ?? null,
+        `character-attack-${tokenId}-${sequence.current + 1}`,
+        Date.now(),
+        current.tokens,
+      )
+      if (!event) return current
+      sequence.current += 1
+      return applyPresentationEvent(current, event)
+    })
+  }, [])
+
   useEffect(() => {
     if (!enabled) return undefined
+    const manualOnly = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('manual') === '1'
     const sequenceActions: readonly SliceAction[] = [
       { type: 'animation', tokenId: 'character-knight', animation: 'move' },
       { type: 'animation', tokenId: 'character-mage', animation: 'attack' },
@@ -317,7 +410,7 @@ export function useCharacterSlice(enabled: boolean): CharacterSliceState {
       dispatch(action)
       scheduled.current = setTimeout(run, 720)
     }
-    scheduled.current = setTimeout(run, 450)
+    if (!manualOnly) scheduled.current = setTimeout(run, 450)
     const handleAction = (event: Event) => {
       const action = parseAction((event as CustomEvent<unknown>).detail)
       if (action) dispatch(action)
@@ -329,7 +422,16 @@ export function useCharacterSlice(enabled: boolean): CharacterSliceState {
     }
   }, [dispatch, enabled])
 
-  return enabled ? slice : { tokens: EMPTY_TOKENS, presentationEvents: EMPTY_EVENTS, diagnostics: EMPTY_DIAGNOSTICS }
+  return enabled
+    ? { ...slice, recordCharacterDiagnostics, recordCharacterAttackEvent }
+    : {
+        tokens: EMPTY_TOKENS,
+        presentationEvents: EMPTY_EVENTS,
+        diagnostics: EMPTY_DIAGNOSTICS,
+        rendererByToken: {},
+        recordCharacterDiagnostics,
+        recordCharacterAttackEvent,
+      }
 }
 
 export function CharacterSliceDiagnostics({ diagnostics }: Readonly<{ diagnostics: CharacterSliceDiagnostics }>) {

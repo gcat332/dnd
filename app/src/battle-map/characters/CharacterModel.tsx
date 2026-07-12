@@ -1,6 +1,6 @@
 import { useAnimations, useGLTF } from '@react-three/drei'
 import { useFrame, useThree } from '@react-three/fiber'
-import { useEffect, useLayoutEffect, useMemo, useRef } from 'react'
+import { Component, useEffect, useLayoutEffect, useMemo, useRef, type ReactNode } from 'react'
 import { AnimationAction, AnimationClip, LoopOnce, LoopRepeat, Object3D } from 'three'
 import { SkeletonUtils } from 'three-stdlib'
 import {
@@ -32,6 +32,15 @@ export type CharacterModelProps = Readonly<{
   state: CharacterPresentationState
   onAttackEvent?: (state: CharacterPresentationState) => void
   onAnimationComplete?: (animation: CharacterAnimationName) => void
+  onDiagnostics?: (diagnostics: CharacterRenderDiagnostics) => void
+}>
+
+export type CharacterRenderDiagnostics = Readonly<{
+  recipeId: string
+  loaded: boolean
+  mixerReady: boolean
+  assetError?: string
+  optionalFallback?: boolean
 }>
 
 export type AnimationLoopSettings = Readonly<{
@@ -72,6 +81,35 @@ type EquipmentAttachmentProps = Readonly<{
   parent: Object3D
 }>
 
+type EquipmentFallbackProps = Readonly<{
+  children: ReactNode
+  itemId: string
+  onDiagnostics?: (diagnostics: CharacterRenderDiagnostics) => void
+}>
+type EquipmentFallbackState = Readonly<{ failed: boolean }>
+
+class EquipmentFallbackBoundary extends Component<EquipmentFallbackProps, EquipmentFallbackState> {
+  state: EquipmentFallbackState = { failed: false }
+
+  static getDerivedStateFromError(): EquipmentFallbackState {
+    return { failed: true }
+  }
+
+  componentDidCatch(error: Error) {
+    this.props.onDiagnostics?.({
+      recipeId: this.props.itemId,
+      loaded: false,
+      mixerReady: false,
+      assetError: error.message,
+      optionalFallback: true,
+    })
+  }
+
+  render() {
+    return this.state.failed ? null : this.props.children
+  }
+}
+
 function EquipmentAttachment({ itemId, slot, parent }: EquipmentAttachmentProps) {
   const recipe = getEquipmentRecipe(itemId)
   const loaded = loadedAsset(useGLTF(recipe?.url ?? INVALID_ASSET_URL))
@@ -100,7 +138,7 @@ function EquipmentAttachment({ itemId, slot, parent }: EquipmentAttachmentProps)
   return null
 }
 
-export function CharacterModel({ state, onAttackEvent, onAnimationComplete }: CharacterModelProps) {
+export function CharacterModel({ state, onAttackEvent, onAnimationComplete, onDiagnostics }: CharacterModelProps) {
   const recipe = getCharacterRecipe(state.recipeId)
   const loaded = loadedAsset(useGLTF(recipe?.url ?? INVALID_ASSET_URL))
   const scene = useMemo(() => SkeletonUtils.clone(loaded.scene), [loaded.scene])
@@ -112,6 +150,11 @@ export function CharacterModel({ state, onAttackEvent, onAnimationComplete }: Ch
   const previousTime = useRef(0)
   const attackEventFired = useRef(false)
   const animationComplete = useRef(false)
+
+  useEffect(() => {
+    if (!recipe) return
+    onDiagnostics?.({ recipeId: recipe.id, loaded: true, mixerReady: Boolean(mixer) })
+  }, [mixer, onDiagnostics, recipe])
 
   if (!recipe) throw new AssetContractError(state.recipeId, 'character recipe')
   validateCharacterAsset(recipe.id, scene, animations)
@@ -172,12 +215,17 @@ export function CharacterModel({ state, onAttackEvent, onAnimationComplete }: Ch
       <primitive ref={sceneRef} object={scene} dispose={null} />
       {(Object.keys(EQUIPMENT_SOCKET) as EquipmentSlot[]).map((slot) => (
         state.equipment[slot] ? (
-          <EquipmentAttachment
+          <EquipmentFallbackBoundary
             key={slot}
             itemId={state.equipment[slot]}
-            parent={scene}
-            slot={slot}
-          />
+            onDiagnostics={onDiagnostics}
+          >
+            <EquipmentAttachment
+              itemId={state.equipment[slot]}
+              parent={scene}
+              slot={slot}
+            />
+          </EquipmentFallbackBoundary>
         ) : null
       ))}
     </group>

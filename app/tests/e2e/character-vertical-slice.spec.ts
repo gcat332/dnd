@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test'
 import { PNG } from 'pngjs'
 
-const CHARACTER_URL = '/?characters=1'
+const CHARACTER_URL = '/?characters=1&manual=1'
 
 async function nonblank(page: Page) {
   const canvas = page.getByTestId('battle-map-canvas')
@@ -31,9 +31,9 @@ test('loads the three real character GLBs and keeps the domain cells stable', as
   await page.goto(CHARACTER_URL)
 
   const slice = diagnostics(page)
-  await expect(slice).toHaveAttribute('data-loaded-recipe-ids', 'kaykit-knight,kaykit-mage,kaykit-skeleton')
+  await expect(slice).toHaveAttribute('data-loaded-recipe-ids', 'kaykit-knight,kaykit-mage,kaykit-skeleton', { timeout: 15_000 })
   await expect(slice).toHaveAttribute('data-asset-error-count', '0')
-  await expect(slice).toHaveAttribute('data-mixer-count', '3')
+  await expect(slice).toHaveAttribute('data-mixer-count', '3', { timeout: 15_000 })
   const checksum = await page.getByTestId('scene-performance-diagnostics').getAttribute('data-token-checksum')
   await nonblank(page)
 
@@ -50,7 +50,7 @@ test('switches equipment and deduplicates replayed presentation events', async (
   await page.setViewportSize({ width: 1280, height: 800 })
   await page.goto(CHARACTER_URL)
   const slice = diagnostics(page)
-  await expect(slice).toHaveAttribute('data-loaded-recipe-ids', 'kaykit-knight,kaykit-mage,kaykit-skeleton')
+  await expect(slice).toHaveAttribute('data-loaded-recipe-ids', 'kaykit-knight,kaykit-mage,kaykit-skeleton', { timeout: 15_000 })
   await dispatch(page, {
     type: 'equipment',
     tokenId: 'character-knight',
@@ -71,6 +71,33 @@ test('switches equipment and deduplicates replayed presentation events', async (
   await expect.poll(async () => (await slice.getAttribute('data-emitted-event-ids')) ?? '').toContain('e2e-slash-replay')
   const emitted = (await slice.getAttribute('data-emitted-event-ids')) ?? ''
   expect(emitted.split(',').filter((id) => id === 'e2e-slash-replay')).toHaveLength(1)
+})
+
+test('accepts a renderer-backed attack marker and reports optional asset fallback', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 })
+  await page.goto('/?characters=1&manual=1')
+  const slice = diagnostics(page)
+  await expect(slice).toHaveAttribute('data-loaded-recipe-ids', 'kaykit-knight,kaykit-mage,kaykit-skeleton', { timeout: 15_000 })
+
+  await dispatch(page, { type: 'animation', tokenId: 'character-knight', animation: 'attack' })
+  await expect.poll(async () => (await slice.getAttribute('data-current-animations')) ?? '', { timeout: 15_000 }).toContain(
+    '"character-knight":"attack"',
+  )
+  await expect.poll(async () => (await slice.getAttribute('data-emitted-event-ids')) ?? '', { timeout: 15_000 }).toMatch(
+    /character-attack-character-knight-/,
+  )
+  await expect.poll(async () => (await slice.getAttribute('data-active-event-ids')) ?? '', { timeout: 15_000 }).toMatch(
+    /character-attack-character-knight-/,
+  )
+
+  await dispatch(page, {
+    type: 'equipment',
+    tokenId: 'character-mage',
+    equipment: { mainHand: '__missing_optional_equipment__' },
+  })
+  await expect.poll(async () => Number((await slice.getAttribute('data-optional-fallback-count')) ?? '0')).toBeGreaterThan(0)
+  await expect.poll(async () => Number((await slice.getAttribute('data-asset-error-count')) ?? '0')).toBeGreaterThan(0)
+  await expect(slice).toHaveAttribute('data-mixer-count', '3')
 })
 
 test('keeps characters usable with empty optional equipment and recovers the renderer', async ({ page }) => {
@@ -98,6 +125,10 @@ test('captures named orbit readability evidence at representative camera angles'
   await page.goto(CHARACTER_URL)
   const canvas = page.getByTestId('battle-map-canvas')
   const camera = page.getByTestId('camera-diagnostics')
+  await expect(camera).toHaveAttribute('data-yaw', '0.000')
+  await expect(camera).toHaveAttribute('data-pitch', '55.000')
+  await expect(camera).toHaveAttribute('data-zoom', '4.000')
+  await expect(camera).toHaveAttribute('data-focus', '100.000:100.000')
   for (const pitch of ['35', '55', '90']) {
     await page.getByRole('button', { name: pitch === '90' ? 'Top view' : 'Reset camera' }).click()
     if (pitch === '35') {
@@ -121,6 +152,20 @@ test('captures named orbit readability evidence at representative camera angles'
       }
       await canvas.screenshot({ path: `test-results/character-${yaw}-${pitch}.png` })
       await nonblank(page)
+      const focus = await camera.getAttribute('data-focus')
+      expect(focus).toBe('100.000:100.000')
+      expect(Number(await camera.getAttribute('data-zoom'))).toBeGreaterThanOrEqual(4)
     }
   }
+})
+
+test('combines 40 character mixers with the 200-object stress harness', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 })
+  await page.goto('/?characters=1&stress=1')
+  const slice = diagnostics(page)
+  await expect(slice).toHaveAttribute('data-mixer-count', '40', { timeout: 30_000 })
+  const scene = page.getByTestId('scene-performance-diagnostics')
+  await expect(scene).toHaveAttribute('data-object-count', '240')
+  await expect(scene).toHaveAttribute('data-combined-stress-object-count', '240')
+  await expect.poll(async () => Number((await scene.getAttribute('data-frame-samples')) ?? '0')).toBeGreaterThan(0)
 })

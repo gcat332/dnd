@@ -6,6 +6,7 @@ import { MovementPreview } from './MovementPreview'
 import { AnimatedToken, type RemoteTokenAnimation } from './AnimatedToken'
 import { TokenMesh } from './TokenMesh'
 import { CharacterToken } from '../characters/CharacterToken'
+import type { CharacterRenderDiagnostics } from '../characters/CharacterModel'
 import type { CharacterAnimationName, CharacterPresentationState } from '../characters/contract'
 
 export type TokenLayerProps = {
@@ -16,6 +17,7 @@ export type TokenLayerProps = {
   onRemoteTokenAnimationComplete?: (animation: RemoteTokenAnimation) => void
   onCharacterAttackEvent?: (tokenId: string, state: CharacterPresentationState) => void
   onCharacterAnimationComplete?: (tokenId: string, animation: CharacterAnimationName) => void
+  onCharacterDiagnostics?: (tokenId: string, diagnostics: CharacterRenderDiagnostics) => void
 }
 
 export function TokenLayer({
@@ -26,6 +28,7 @@ export function TokenLayer({
   onRemoteTokenAnimationComplete = () => undefined,
   onCharacterAttackEvent,
   onCharacterAnimationComplete,
+  onCharacterDiagnostics,
 }: TokenLayerProps) {
   const dragPreview = useBattleMapView((state) => state.dragPreview)
   const clearDragPreview = useBattleMapView((state) => state.clearDragPreview)
@@ -67,6 +70,7 @@ export function TokenLayer({
               onMoveIntent={onMoveIntent}
               onAttackEvent={onCharacterAttackEvent}
               onAnimationComplete={onCharacterAnimationComplete}
+              onDiagnostics={onCharacterDiagnostics}
             />
           ) : (
             <TokenMesh key={token.id} token={token} onMoveIntent={onMoveIntent} />

@@ -10,6 +10,8 @@ import type { MoveIntent, TokenRenderState } from '../domain/tokens'
 import type { VisibilityGrid } from '../domain/visibility'
 import { CharacterEffects } from '../effects/CharacterEffects'
 import type { CharacterPresentationEvent } from '../effects/presentationEvents'
+import type { CharacterRenderDiagnostics } from '../characters/CharacterModel'
+import type { CharacterPresentationState } from '../characters/contract'
 import type { StressWall } from '../fixtures/createStressScene'
 import type { SceneQualitySettings } from '../performance/quality'
 import {
@@ -77,6 +79,8 @@ type BattleMapSceneProps = {
   remoteTokenAnimations?: readonly RemoteTokenAnimation[]
   onAnimatedTokenWorldPoint?: (tokenId: string, point: WorldPoint) => void
   onRemoteTokenAnimationComplete?: (animation: RemoteTokenAnimation) => void
+  onCharacterAttackEvent?: (tokenId: string, state: CharacterPresentationState) => void
+  onCharacterDiagnostics?: (tokenId: string, diagnostics: CharacterRenderDiagnostics) => void
   qualitySettings?: SceneQualitySettings
   terrainFeatures?: readonly TerrainFeature[]
   stressWalls?: readonly StressWall[]
@@ -133,6 +137,8 @@ export function BattleMapScene({
   remoteTokenAnimations = [],
   onAnimatedTokenWorldPoint,
   onRemoteTokenAnimationComplete,
+  onCharacterAttackEvent,
+  onCharacterDiagnostics,
   qualitySettings = DEFAULT_QUALITY,
   terrainFeatures = NO_TERRAIN,
   stressWalls = [],
@@ -194,6 +200,8 @@ export function BattleMapScene({
         remoteTokenAnimations={remoteTokenAnimations}
         onAnimatedTokenWorldPoint={onAnimatedTokenWorldPoint}
         onRemoteTokenAnimationComplete={onRemoteTokenAnimationComplete}
+        onCharacterAttackEvent={onCharacterAttackEvent}
+        onCharacterDiagnostics={onCharacterDiagnostics}
       />
       <CharacterEffects
         events={presentationEvents}

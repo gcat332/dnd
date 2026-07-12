@@ -2,7 +2,7 @@ import type { MoveIntent, TokenRenderState } from '../domain/tokens'
 import { gridToWorld } from '../domain/grid'
 import { useBattleMapView } from '../state/useBattleMapView'
 import { TokenMesh } from '../scene/TokenMesh'
-import { CharacterModel } from './CharacterModel'
+import { CharacterModel, type CharacterRenderDiagnostics } from './CharacterModel'
 import type { CharacterAnimationName, CharacterPresentationState } from './contract'
 import { Component, Suspense, type ErrorInfo, type ReactNode } from 'react'
 
@@ -11,9 +11,10 @@ export type CharacterTokenProps = Readonly<{
   onMoveIntent: (intent: MoveIntent) => void
   onAttackEvent?: (tokenId: string, state: CharacterPresentationState) => void
   onAnimationComplete?: (tokenId: string, animation: CharacterAnimationName) => void
+  onDiagnostics?: (tokenId: string, diagnostics: CharacterRenderDiagnostics) => void
 }>
 
-type FallbackProps = Readonly<{ children: ReactNode; fallback: ReactNode }>
+type FallbackProps = Readonly<{ children: ReactNode; fallback: ReactNode; onFallback?: (error: Error) => void }>
 type FallbackState = Readonly<{ failed: boolean }>
 
 class CharacterFallbackBoundary extends Component<FallbackProps, FallbackState> {
@@ -23,8 +24,9 @@ class CharacterFallbackBoundary extends Component<FallbackProps, FallbackState> 
     return { failed: true }
   }
 
-  componentDidCatch(_error: Error, _info: ErrorInfo) {
+  componentDidCatch(error: Error, _info: ErrorInfo) {
     // A failed optional character asset must never prevent map interaction.
+    this.props.onFallback?.(error)
   }
 
   render() {
@@ -51,6 +53,7 @@ export function CharacterToken({
   onMoveIntent,
   onAttackEvent,
   onAnimationComplete,
+  onDiagnostics,
 }: CharacterTokenProps) {
   const selected = useBattleMapView((state) => state.selectedTokenId === token.id)
   const point = gridToWorld(token.cell)
@@ -61,6 +64,12 @@ export function CharacterToken({
       <TokenMesh token={token} onMoveIntent={onMoveIntent} interactiveOnly />
       <CharacterFallbackBoundary
         key={state.recipeId}
+        onFallback={(error) => onDiagnostics?.(token.id, {
+          recipeId: state.recipeId,
+          loaded: false,
+          mixerReady: false,
+          assetError: error.message,
+        })}
         fallback={<TokenMesh token={token} onMoveIntent={onMoveIntent} />}
       >
         <Suspense fallback={<TokenMesh token={token} onMoveIntent={onMoveIntent} />}>
@@ -75,6 +84,7 @@ export function CharacterToken({
               state={state}
               onAttackEvent={(nextState) => onAttackEvent?.(token.id, nextState)}
               onAnimationComplete={(animation) => onAnimationComplete?.(token.id, animation)}
+              onDiagnostics={(diagnostics) => onDiagnostics?.(token.id, diagnostics)}
             />
           </group>
         </Suspense>

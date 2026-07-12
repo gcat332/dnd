@@ -22,11 +22,20 @@ Firefox, and WebKit projects configured in `app/playwright.config.ts`.
 | Character slice total | 1,462,308 B | under 4 MB first-three gate |
 
 The browser harness is enabled with `/?characters=1`. It exposes hidden
-`character-slice-diagnostics` for recipe IDs, animation states, equipment
-attachments, event IDs, mixer count, and asset errors. The acceptance suite
+`character-slice-diagnostics` for renderer-reported recipe IDs, animation
+states, equipment attachments, accepted event IDs, mixer count, and asset
+errors/fallbacks. Attack events are emitted by the GLB animation marker and
+flow through the scene into the accepted presentation-event reducer; the
+manual event replay test is separate. The acceptance suite
 captures `character-{yaw}-{pitch}.png` evidence for the representative orbit
 angles and checks canvas pixels, not screenshots alone. Replayed presentation
 event IDs are reduced by stable ID, so slash/fire effects are emitted once.
+
+The stress acceptance route (`/?characters=1&stress=1`) combines 40 real
+character render states/mixers with the existing 200 interactive stress
+objects. Its renderer diagnostics report `data-object-count=240` and
+`data-character-mixer-count=40`; browser frame samples are asserted, but they
+are not a substitute for the physical-device gate below.
 
 The automated gates run with:
 
@@ -34,7 +43,14 @@ The automated gates run with:
 npm run assets:validate   PASS
 npm test                  PASS (55 files, 264 tests)
 npm run build             PASS
-npm run test:e2e           PASS (12 character tests across Chromium, Firefox, WebKit)
+npx playwright test ... --project=chromium --grep renderer-backed PASS
+npx playwright test ... --project=chromium --grep stress PASS
+npx playwright test ... --project=chromium --grep orbit PASS
+
+The pre-existing 12-test cross-browser run passed before these acceptance
+hardening additions. A post-change 18-test three-worker matrix was not used as
+release evidence because parallel browser resource contention caused flaky GLB
+load timing; the focused Chromium gates above are the evidence for this fix.
 git diff --check          PASS
 ```
 

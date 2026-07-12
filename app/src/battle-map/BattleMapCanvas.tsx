@@ -481,7 +481,11 @@ export function BattleMapCanvas({ terrainFeatures = FIXTURE_TERRAIN }: BattleMap
     const detail: unknown = (event as CustomEvent<unknown>).detail
     if (isRecord(detail) && isSceneQuality(detail.quality)) setQuality(detail.quality)
   }, [])
-  const sourceTokens = charactersEnabled ? characterSlice.tokens : fixtureTokens
+  const sourceTokens = charactersEnabled
+    ? stressMode
+      ? [...characterSlice.tokens, ...stressScene.interactiveObjects]
+      : characterSlice.tokens
+    : fixtureTokens
   const tokens =
     viewer === 'dm'
       ? sourceTokens
@@ -599,6 +603,8 @@ export function BattleMapCanvas({ terrainFeatures = FIXTURE_TERRAIN }: BattleMap
           remoteTokenAnimations={remoteTokenAnimations}
           onAnimatedTokenWorldPoint={recordAnimatedTokenPoint}
           onRemoteTokenAnimationComplete={completeRemoteTokenAnimation}
+          onCharacterAttackEvent={charactersEnabled ? characterSlice.recordCharacterAttackEvent : undefined}
+          onCharacterDiagnostics={charactersEnabled ? characterSlice.recordCharacterDiagnostics : undefined}
           qualitySettings={qualitySettings}
           terrainFeatures={terrainFeatures}
           stressWalls={stressMode ? stressScene.walls : []}
@@ -648,6 +654,8 @@ export function BattleMapCanvas({ terrainFeatures = FIXTURE_TERRAIN }: BattleMap
         data-particle-scale={qualitySettings.particleScale}
         data-output-processing={qualitySettings.outputProcessing}
         data-object-count={tokens.length}
+        data-character-mixer-count={charactersEnabled ? characterSlice.diagnostics.mixerCount : 0}
+        data-combined-stress-object-count={stressMode ? tokens.length : 0}
         data-maximum-class-detail-texture-count={metrics.maximumClassDetailTextures}
         data-maximum-class-texture-render={
           maximumClassTextureRender ? JSON.stringify(maximumClassTextureRender) : ''
