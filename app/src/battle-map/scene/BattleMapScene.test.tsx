@@ -4,6 +4,7 @@ import type { Mesh, MeshStandardMaterial } from 'three'
 import { DEFAULT_CAMERA_VIEW } from '../camera/cameraView'
 import type { TerrainFeature } from '../../battle-maps/terrain'
 import type { AreaTemplate } from '../domain/effects'
+import type { CharacterPresentationEvent } from '../effects/presentationEvents'
 import type { VisibilityGrid } from '../domain/visibility'
 import { useBattleMapView } from '../state/useBattleMapView'
 import { BattleMapScene, sceneSelection } from './BattleMapScene'
@@ -30,6 +31,17 @@ const TEMPLATE: AreaTemplate = {
   kind: 'circle',
   origin: { column: 100, row: 100 },
   radius: 1,
+}
+
+const PRESENTATION_EVENT: CharacterPresentationEvent = {
+  id: 'scene-spell-1',
+  effectId: 'fire_projectile',
+  sourceTokenId: 'visible-token',
+  targetTokenId: 'target-token',
+  source: { x: 102.5, z: 100.5 },
+  target: { x: 103.5, z: 100.5 },
+  startedAtMs: Date.now(),
+  durationMs: 2_000,
 }
 
 beforeEach(() => {
@@ -126,6 +138,52 @@ it('adds targeting and remote animation without bypassing Token visibility', asy
   expect(renderer.scene.findAllByProps({ name: /^target-cell-/ })).toHaveLength(5)
   expect(renderer.scene.findByProps({ name: 'animated-token-visible-token' }).type).toBe('Group')
   expect(renderer.scene.findAllByProps({ name: 'animated-token-hidden-token' })).toHaveLength(0)
+  await renderer.unmount()
+})
+
+it('filters stale presentation events using only visible source and target Tokens', async () => {
+  const renderer = await ReactThreeTestRenderer.create(
+    <BattleMapScene
+      presentationEvents={[
+        PRESENTATION_EVENT,
+        { ...PRESENTATION_EVENT, id: 'hidden-source', sourceTokenId: 'hidden-token' },
+        { ...PRESENTATION_EVENT, id: 'hidden-target', targetTokenId: 'hidden-token' },
+      ]}
+      tokens={[
+        {
+          id: 'visible-token',
+          label: 'Visible Token',
+          cell: { column: 102, row: 100 },
+          elevation: 0,
+          color: '#37ff78',
+          visible: true,
+        },
+        {
+          id: 'target-token',
+          label: 'Target Token',
+          cell: { column: 103, row: 100 },
+          elevation: 0,
+          color: '#ff4f81',
+          visible: true,
+        },
+        {
+          id: 'hidden-token',
+          label: 'Hidden Token',
+          cell: { column: 104, row: 100 },
+          elevation: 0,
+          color: '#ff4f81',
+          visible: false,
+        },
+      ]}
+    />,
+  )
+
+  expect(renderer.scene.findByProps({ name: 'character-effect-fire_projectile-scene-spell-1' })).toBeDefined()
+  expect(renderer.scene.findAllByProps({ name: 'character-effect-fire_projectile-hidden-source' })).toHaveLength(0)
+  expect(renderer.scene.findAllByProps({ name: 'character-effect-fire_projectile-hidden-target' })).toHaveLength(0)
+  const effects = renderer.scene.findByProps({ name: 'character-effects' })
+  const visibility = renderer.scene.findByProps({ name: 'visibility-layer' })
+  expect(renderer.scene.children.indexOf(effects)).toBeLessThan(renderer.scene.children.indexOf(visibility))
   await renderer.unmount()
 })
 
