@@ -21,6 +21,7 @@ body,
 }
 
 .battle-map-view {
+  position: relative;
   min-width: 0;
   min-height: 0;
   overflow: hidden;
@@ -80,6 +81,55 @@ body,
 .map-tool-controls button[aria-pressed='true'] {
   color: #13171c;
   background: #7fd6a4;
+}
+
+.camera-toolbar {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 2;
+  display: flex;
+  border: 1px solid #5d636c;
+  border-radius: 6px;
+  overflow: hidden;
+  background: #252a31;
+  box-shadow: 0 2px 10px rgb(0 0 0 / 35%);
+}
+
+.camera-toolbar-button {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  box-sizing: border-box;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-right: 1px solid #5d636c;
+  color: #f4f6f8;
+  background: #252a31;
+  cursor: pointer;
+}
+
+.camera-toolbar-button:last-child {
+  border-right: 0;
+}
+
+.camera-toolbar-button:hover {
+  background: #353b44;
+}
+
+.camera-toolbar-button:focus-visible {
+  position: relative;
+  z-index: 1;
+  outline: 2px solid #7fd6a4;
+  outline-offset: -2px;
+}
+
+@media (pointer: coarse) {
+  .camera-toolbar-button {
+    width: 44px;
+    height: 44px;
+  }
 }
 
 .webgl-recovery {

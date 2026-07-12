@@ -1,5 +1,6 @@
 import { Canvas } from '@react-three/fiber'
 import type { TerrainFeature } from '../battle-maps/terrain'
+import { CameraToolbar } from './camera/CameraToolbar'
 import { ControlledOrbitCamera } from './camera/ControlledOrbitCamera'
 import { BattleMapScene } from './scene/BattleMapScene'
 
@@ -20,6 +21,7 @@ export function BattleMapView({ terrain = [] }: BattleMapViewProps = {}) {
         <ControlledOrbitCamera />
         <BattleMapScene terrainFeatures={terrain} />
       </Canvas>
+      <CameraToolbar />
     </div>
   )
 }

@@ -2,6 +2,7 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Vector3 } from 'three'
 import { ControlledOrbitCamera } from './camera/ControlledOrbitCamera'
+import { CameraToolbar } from './camera/CameraToolbar'
 import { cellsCoveredByTemplate, type AreaTemplate } from './domain/effects'
 import { MAP_SIZE_CELLS, type GridCell, type WorldPoint } from './domain/grid'
 import type { MoveIntent, TokenRenderState } from './domain/tokens'
@@ -506,6 +507,7 @@ export function BattleMapCanvas() {
         </div>
       </div>
       <div className="battle-map-viewport">
+        <CameraToolbar />
         <Canvas
         key={rendererGeneration}
         data-testid="battle-map-canvas"

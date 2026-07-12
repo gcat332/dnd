@@ -3,6 +3,7 @@ import ReactThreeTestRenderer from '@react-three/test-renderer'
 import type { ReactElement } from 'react'
 import { beforeEach, expect, it } from 'vitest'
 import { ControlledOrbitCamera } from './camera/ControlledOrbitCamera'
+import { CameraToolbar } from './camera/CameraToolbar'
 import { useBattleMapView } from './state/useBattleMapView'
 import { BattleMapView } from './BattleMapView'
 import { BattleMapScene } from './scene/BattleMapScene'
@@ -48,12 +49,15 @@ it('mounts the battle map scene with no tokens or terrain data', async () => {
 it('composes the Canvas with the validated prototype camera/gl config', () => {
   const view = BattleMapView() as ReactElement<{
     className: string
-    children: ReactElement<Record<string, unknown>>
+    children: ReactElement<Record<string, unknown>>[]
   }>
   expect(view.props.className).toBe('battle-map-view')
 
-  const canvasElement = view.props.children
+  expect(view.props.children).toHaveLength(2)
+  const [canvasElement, toolbarElement] = view.props.children
+  if (!canvasElement || !toolbarElement) throw new Error('expected Canvas and camera toolbar')
   expect(canvasElement.type).toBe(Canvas)
+  expect(toolbarElement.type).toBe(CameraToolbar)
   expect(canvasElement.props).toMatchObject({
     orthographic: true,
     frameloop: 'demand',
