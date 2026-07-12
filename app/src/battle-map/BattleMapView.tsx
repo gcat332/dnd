@@ -3,6 +3,7 @@ import { Canvas } from '@react-three/fiber'
 import { useRef } from 'react'
 import type { MapControls as MapControlsImpl } from 'three-stdlib'
 import type { TerrainFeature } from '../battle-maps/terrain'
+import type { MoveIntent, TokenRenderState } from './domain/tokens'
 import { BattleMapScene } from './scene/BattleMapScene'
 
 export function BattleMapCameraControls() {
@@ -23,9 +24,11 @@ export function BattleMapCameraControls() {
 
 type BattleMapViewProps = {
   terrain?: readonly TerrainFeature[]
+  tokens?: readonly TokenRenderState[]
+  onMoveIntent?: (intent: MoveIntent) => void
 }
 
-export function BattleMapView({ terrain = [] }: BattleMapViewProps = {}) {
+export function BattleMapView({ terrain = [], tokens = [], onMoveIntent }: BattleMapViewProps = {}) {
   return (
     <div className="battle-map-view">
       <Canvas
@@ -36,7 +39,7 @@ export function BattleMapView({ terrain = [] }: BattleMapViewProps = {}) {
       >
         <color attach="background" args={['#171a1f']} />
         <BattleMapCameraControls />
-        <BattleMapScene terrainFeatures={terrain} />
+        <BattleMapScene terrainFeatures={terrain} tokens={tokens} onMoveIntent={onMoveIntent} />
       </Canvas>
     </div>
   )

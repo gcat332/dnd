@@ -45,7 +45,11 @@ vi.mock('./battle-maps/api', () => ({
   getBattleMap: vi.fn((mapId: string) =>
     Promise.resolve(mapId === 'map-1' ? MAP_A : mapId === 'map-2' ? MAP_B : null),
   ),
+  listBattleMapTokens: vi.fn(() => Promise.resolve([])),
+  moveToken: vi.fn(),
   setBattleMapTerrain: vi.fn(),
+  createToken: vi.fn(),
+  deleteToken: vi.fn(),
 }))
 
 vi.mock('./battle-map/BattleMapView', () => ({
