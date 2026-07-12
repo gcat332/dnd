@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "characters": [
+    { "id": "kaykit-knight", "role": "player", "url": "/assets/characters/kaykit-knight.glb", "rig": "kaykit-medium", "attackEventTime": 0.55 },
+    { "id": "kaykit-mage", "role": "npc", "url": "/assets/characters/kaykit-mage.glb", "rig": "kaykit-medium", "attackEventTime": 0.62 },
+    { "id": "kaykit-skeleton", "role": "monster", "url": "/assets/characters/kaykit-skeleton.glb", "rig": "kaykit-medium", "attackEventTime": 0.48 }
+  ],
+  "equipment": [
+    { "id": "sword", "allowedSlots": ["mainHand", "back"], "url": "/assets/characters/equipment/sword.glb" },
+    { "id": "shield", "allowedSlots": ["offHand"], "url": "/assets/characters/equipment/shield.glb" },
+    { "id": "staff", "allowedSlots": ["mainHand", "back"], "url": "/assets/characters/equipment/staff.glb" },
+    { "id": "wand", "allowedSlots": ["mainHand", "back"], "url": "/assets/characters/equipment/wand.glb" },
+    { "id": "axe", "allowedSlots": ["mainHand", "back"], "url": "/assets/characters/equipment/axe.glb" },
+    { "id": "helmet", "allowedSlots": ["head"], "url": "/assets/characters/equipment/helmet.glb" }
+  ]
+}

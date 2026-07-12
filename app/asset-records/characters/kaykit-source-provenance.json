@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "sources": [
+    {
+      "sourceId": "kaykit-adventurers-free-2.0",
+      "officialUrl": "https://kaylousberg.itch.io/kaykit-adventurers",
+      "advertisedVersion": "2.0",
+      "downloadDate": "2026-07-12",
+      "archiveFilename": "adventurers-free-2.0.zip",
+      "byteSize": 13024345,
+      "sha256": "abe48f4763fba0896bab486ee9e6d08ca6b5b3884b9601f235c8847ae94dc479"
+    },
+    {
+      "sourceId": "kaykit-skeletons-free-1.1",
+      "officialUrl": "https://kaylousberg.itch.io/kaykit-skeletons",
+      "advertisedVersion": "1.1",
+      "downloadDate": "2026-07-12",
+      "archiveFilename": "skeletons-free-1.1.zip",
+      "byteSize": 8177445,
+      "sha256": "21fbad59ee6cc1d7bed12d0e425acab8ebe564b8620bbc1d017aedb29dd8a3d2"
+    },
+    {
+      "sourceId": "kaykit-character-animations-free-1.1",
+      "officialUrl": "https://kaylousberg.itch.io/kaykit-character-animations",
+      "advertisedVersion": "1.1",
+      "downloadDate": "2026-07-12",
+      "archiveFilename": "character-animations-free-1.1.zip",
+      "byteSize": 14858957,
+      "sha256": "65882f31f905ad2e953819648a59287cdeab8f623908d5ef701971d3758be20f"
+    }
+  ]
+}
