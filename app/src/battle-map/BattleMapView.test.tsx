@@ -2,8 +2,9 @@ import { Canvas } from '@react-three/fiber'
 import ReactThreeTestRenderer from '@react-three/test-renderer'
 import type { ReactElement } from 'react'
 import { beforeEach, expect, it } from 'vitest'
+import { ControlledOrbitCamera } from './camera/ControlledOrbitCamera'
 import { useBattleMapView } from './state/useBattleMapView'
-import { BattleMapCameraControls, BattleMapView } from './BattleMapView'
+import { BattleMapView } from './BattleMapView'
 import { BattleMapScene } from './scene/BattleMapScene'
 
 beforeEach(() => {
@@ -25,16 +26,14 @@ beforeEach(() => {
 // produce a rubber-stamp test, not real verification.
 //
 // So this file verifies the same guarantees via the two halves that together are what
-// `BattleMapView` composes, each independently real (no shallow mocks):
+// `BattleMapView` composes:
 //   1. `BattleMapScene` (the exact same call `BattleMapView` makes) mounted through
 //      `@react-three/test-renderer`, producing a real Three.js scene graph — same procedural
 //      grid / empty token layer assertions the brief specified.
-//   2. `BattleMapCameraControls` mounted through `@react-three/test-renderer`, proving the
-//      `MapControls` values it renders match the validated `BattleMapCanvas.tsx` prototype
-//      config exactly.
-//   3. `BattleMapView`'s own returned element tree (calling the function directly — no
+//   2. `BattleMapView`'s own returned element tree (calling the function directly — no
 //      rendering needed for a plain element-tree check) confirming the `Canvas` props and the
-//      composition order match the brief exactly.
+//      composition order match the brief exactly. The shared camera adapter has its own
+//      React Three Test Renderer coverage.
 
 it('mounts the battle map scene with no tokens or terrain data', async () => {
   const renderer = await ReactThreeTestRenderer.create(<BattleMapScene />)
@@ -42,23 +41,6 @@ it('mounts the battle map scene with no tokens or terrain data', async () => {
   expect(renderer.scene.findByProps({ name: 'procedural-grid' }).type).toBe('Mesh')
   expect(renderer.scene.findByProps({ name: 'token-layer' }).type).toBe('Group')
   expect(renderer.scene.findByProps({ name: 'token-layer' }).children).toHaveLength(0)
-
-  await renderer.unmount()
-})
-
-it('wires MapControls to the same target/zoom config as the validated prototype', async () => {
-  const renderer = await ReactThreeTestRenderer.create(<BattleMapCameraControls />)
-
-  const controls = renderer.scene.findByProps({ minZoom: 4 })
-  expect(controls.props).toMatchObject({
-    target: [100, 0, 100],
-    enableDamping: false,
-    enableRotate: false,
-    minZoom: 4,
-    maxZoom: 36,
-    zoomSpeed: 24,
-    screenSpacePanning: false,
-  })
 
   await renderer.unmount()
 })
@@ -87,6 +69,6 @@ it('composes the Canvas with the validated prototype camera/gl config', () => {
   }
   expect(colorElement.type).toBe('color')
   expect(colorElement.props).toMatchObject({ attach: 'background', args: ['#171a1f'] })
-  expect(cameraControlsElement.type).toBe(BattleMapCameraControls)
+  expect(cameraControlsElement.type).toBe(ControlledOrbitCamera)
   expect(sceneElement.type).toBe(BattleMapScene)
 })

@@ -1,9 +1,7 @@
-import { MapControls } from '@react-three/drei'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Vector3 } from 'three'
-import type { MapControls as MapControlsImpl } from 'three-stdlib'
-import { cameraViewFromPosition } from './camera/cameraView'
+import { ControlledOrbitCamera } from './camera/ControlledOrbitCamera'
 import { cellsCoveredByTemplate, type AreaTemplate } from './domain/effects'
 import { MAP_SIZE_CELLS, type GridCell, type WorldPoint } from './domain/grid'
 import type { MoveIntent, TokenRenderState } from './domain/tokens'
@@ -29,12 +27,11 @@ import {
 import { QUALITY_SETTINGS, type SceneQuality } from './performance/quality'
 import { WebGLContextBoundary } from './performance/WebGLContextBoundary'
 
-type BattleMapCameraProps = {
+type BattleMapCameraProbeProps = {
   onReady: () => void
   onVisibilityProbePoints: (points: VisibilityProbePoints) => void
   onStressTokenPoint: (point: ScreenPoint | null) => void
   stressTokenCell: GridCell | null
-  interactionsEnabled: boolean
 }
 
 type ScreenPoint = Readonly<{ x: number; y: number }>
@@ -176,33 +173,19 @@ function fixtureViewer(): Viewer {
   return new URLSearchParams(window.location.search).get('viewer') === 'player' ? 'player' : 'dm'
 }
 
-function BattleMapCamera({
+function BattleMapCameraProbe({
   onReady,
   onVisibilityProbePoints,
   onStressTokenPoint,
   stressTokenCell,
-  interactionsEnabled,
-}: BattleMapCameraProps) {
-  const controls = useRef<MapControlsImpl>(null)
+}: BattleMapCameraProbeProps) {
   const warmupFrame = useRef(0)
   const camera = useThree((state) => state.camera)
   const size = useThree((state) => state.size)
   const invalidate = useThree((state) => state.invalidate)
-  const publishCameraView = useBattleMapView((state) => state.publishCameraView)
-  const dragPreview = useBattleMapView((state) => state.dragPreview)
+  const cameraView = useBattleMapView((state) => state.cameraView)
 
-  const syncViewState = useCallback((publishProbePoints = true) => {
-    const target = controls.current?.target
-    const focus = target ? { x: target.x, z: target.z } : { x: 100, z: 100 }
-    const visibleCellSpan = Math.max(size.width, size.height) / camera.zoom
-    publishCameraView(
-      cameraViewFromPosition(
-        [camera.position.x, camera.position.y, camera.position.z],
-        focus,
-        camera.zoom,
-      ),
-      visibleCellSpan,
-    )
+  const publishProbePoints = useCallback(() => {
     camera.updateMatrixWorld()
     camera.updateProjectionMatrix()
     const projectCell = (cell: GridCell): ScreenPoint => {
@@ -212,48 +195,32 @@ function BattleMapCamera({
         y: ((1 - point.y) / 2) * size.height,
       }
     }
-    if (publishProbePoints) {
-      onVisibilityProbePoints({
-        visible: projectCell(VISIBILITY_PROBE_CELLS.visible),
-        explored: projectCell(VISIBILITY_PROBE_CELLS.explored),
-        hidden: projectCell(VISIBILITY_PROBE_CELLS.hidden),
-      })
-      onStressTokenPoint(stressTokenCell ? projectCell(stressTokenCell) : null)
-    }
+    onVisibilityProbePoints({
+      visible: projectCell(VISIBILITY_PROBE_CELLS.visible),
+      explored: projectCell(VISIBILITY_PROBE_CELLS.explored),
+      hidden: projectCell(VISIBILITY_PROBE_CELLS.hidden),
+    })
+    onStressTokenPoint(stressTokenCell ? projectCell(stressTokenCell) : null)
     invalidate()
-  }, [camera, invalidate, onStressTokenPoint, onVisibilityProbePoints, publishCameraView, size.height, size.width, stressTokenCell])
+  }, [camera, invalidate, onStressTokenPoint, onVisibilityProbePoints, size.height, size.width, stressTokenCell])
 
   useEffect(() => {
-    syncViewState(false)
     warmupFrame.current = 0
     invalidate()
-  }, [invalidate, syncViewState])
+  }, [cameraView, invalidate])
 
   useFrame(() => {
     if (warmupFrame.current >= 2) return
     warmupFrame.current += 1
     if (warmupFrame.current === 2) {
-      syncViewState()
+      publishProbePoints()
       onReady()
       return
     }
     invalidate()
   })
 
-  return (
-    <MapControls
-      ref={controls}
-      target={[100, 0, 100]}
-      enabled={interactionsEnabled && dragPreview === null}
-      enableDamping={false}
-      enableRotate={false}
-      minZoom={4}
-      maxZoom={36}
-      zoomSpeed={24}
-      screenSpacePanning={false}
-      onChange={() => syncViewState()}
-    />
-  )
+  return null
 }
 
 type TokenInteractionDiagnosticsProps = {
@@ -568,12 +535,12 @@ export function BattleMapCanvas() {
           onQualityChange={setQuality}
           onMetrics={stressMode ? setMetrics : IGNORE_METRICS}
         />
-        <BattleMapCamera
+        <ControlledOrbitCamera enabled={!contextLost} />
+        <BattleMapCameraProbe
           onReady={markCameraReady}
           onVisibilityProbePoints={recordVisibilityProbePoints}
           onStressTokenPoint={setStressTokenPoint}
           stressTokenCell={interactionTokenCell}
-          interactionsEnabled={!contextLost}
         />
         <BattleMapScene
           tokens={tokens}
