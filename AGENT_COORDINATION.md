@@ -27,6 +27,18 @@ When you start a task: add an entry with what you're touching (issue #, files, b
 
 ---
 
+## 2026-07-12 — Codex (Character Vertical Slice implementation)
+
+**Task**: execute
+`docs/superpowers/plans/2026-07-12-character-vertical-slice.md`
+with subagent-driven development.
+**Status**: in progress.
+**Touching**: `.worktrees/character-vertical-slice` on
+`feat/character-vertical-slice`; character assets, loaders, equipment,
+presentation VFX, and harness/e2e files listed in the plan.
+
+---
+
 ## 2026-07-12 — Codex (Controlled Orbit Camera implementation)
 
 **Task**: execute
