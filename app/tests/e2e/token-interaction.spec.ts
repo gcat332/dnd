@@ -1,10 +1,20 @@
 import { expect, test } from '@playwright/test'
-import type { Locator } from '@playwright/test'
+import type { Locator, Page } from '@playwright/test'
 import { PNG } from 'pngjs'
 
 type ScreenPoint = Readonly<{ x: number; y: number }>
 
-async function locateFixtureToken(canvas: Locator): Promise<ScreenPoint> {
+async function locateFixtureToken(
+  page: Page,
+  canvas: Locator,
+  useDiagnostics = true,
+): Promise<ScreenPoint> {
+  if (useDiagnostics) {
+    const encoded = await page.getByTestId('scene-performance-diagnostics').getAttribute(
+      'data-interaction-token-point',
+    )
+    if (encoded) return JSON.parse(encoded) as ScreenPoint
+  }
   const image = PNG.sync.read(await canvas.screenshot())
   const points: ScreenPoint[] = []
   const centerX = image.width / 2
@@ -40,7 +50,7 @@ test('previews a snapped Token drag and emits one MoveIntent on release', async 
   for (let step = 0; step < 10; step += 1) await page.mouse.wheel(0, -1_000)
   await expect(page.getByTestId('chunk-diagnostics')).toHaveAttribute('data-mode', 'detail')
 
-  const from = await locateFixtureToken(canvas)
+  const from = await locateFixtureToken(page, canvas)
   const encodedPoint = await page.getByTestId('scene-performance-diagnostics').getAttribute(
     'data-interaction-token-point',
   )
@@ -54,7 +64,7 @@ test('previews a snapped Token drag and emits one MoveIntent on release', async 
     'data-drag-preview',
     JSON.stringify({ tokenId: 'fixture-token', cell: { column: 102, row: 99 } }),
   )
-  const preview = await locateFixtureToken(canvas)
+  const preview = await locateFixtureToken(page, canvas, false)
   expect(preview.x - from.x).toBeGreaterThan(90)
 
   await page.mouse.up()

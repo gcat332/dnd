@@ -2,6 +2,31 @@
 
 Date: 2026-07-11
 
+## Controlled Orbit Camera Evidence (2026-07-12)
+
+The controlled orbit camera functional matrix was exercised in Playwright's
+Chromium 149, Firefox 151, and WebKit 26.5 projects at the responsive desktop
+and tablet viewports below. These are automated browser runs on the development
+host, not physical-device measurements.
+
+| Browser project | Viewports |
+| --- | --- |
+| Chromium 149.0.7827.55 | 1440 x 900, 1024 x 768, 820 x 1180 |
+| Firefox 151.0 | 1440 x 900, 1024 x 768, 820 x 1180 |
+| WebKit 26.5 | 1440 x 900, 1024 x 768, 820 x 1180 |
+
+Right-drag orbit, wheel zoom, middle-drag pan, camera presets, viewer-safe
+cutaway, hidden-Token selection safety, nonblank angle renders, and
+one-pointer versus two-pointer gesture separation are covered by the
+Playwright suite. No FPS, frame-time, draw-call, or input-latency values are
+claimed for this functional run.
+
+The physical-device gate was **NOT RUN** in this environment. Representative
+desktop Chrome/Safari and a physical tablet were not available, so there are no
+physical browser versions or measured performance values to record. The 60 FPS
+desktop and 30 FPS tablet release targets remain unpassed, and Three.js/R3F is
+not accepted on the basis of this evidence alone.
+
 ## Result
 
 The Three.js/React Three Fiber spike passes its functional browser gates but does not pass the measured performance release gates in this environment. The deterministic stress scene contains exactly 200 interactive Token/prop records, representative walls, exactly four total shadow-casting lights (one directional and three point lights), active fog, 24 continuously reissued Token animations, and a concurrent animated particle effect. Adaptive quality settled on `low` for both measured profiles.

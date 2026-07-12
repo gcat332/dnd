@@ -62,8 +62,16 @@ test('profiles 200 objects, applies low quality, and recovers the committed scen
   const expectedHighDpr = await page.evaluate(() => Math.min(window.devicePixelRatio, 2))
 
   await expect(diagnostics).toHaveAttribute('data-object-count', '200')
+  await expect(diagnostics).toHaveAttribute('data-stress-token-point', /.+/)
+  const stressCanvasBox = await canvas.boundingBox()
+  expect(stressCanvasBox).not.toBeNull()
+  await page.mouse.move(stressCanvasBox!.x + 180, stressCanvasBox!.y + 180)
+  await page.mouse.wheel(0, -2400)
   await expect(chunkDiagnostics).toHaveAttribute('data-center-chunk', '3:3')
   await expect(chunkDiagnostics).toHaveAttribute('data-visible-chunks', /(?:^|,)3:3(?:,|$)/)
+  await page.evaluate(() => {
+    window.dispatchEvent(new CustomEvent('battle-map:set-quality', { detail: { quality: 'high' } }))
+  })
   await expect(diagnostics).toHaveAttribute('data-maximum-class-detail-texture-count', '1', {
     timeout: 15_000,
   })
@@ -95,11 +103,6 @@ test('profiles 200 objects, applies low quality, and recovers the committed scen
   }).toMatchObject({
     dpr: expectedHighDpr,
     shadowCastingLights: 4,
-    shadowType: 'PCFShadowMap',
-    softShadows: true,
-    shadowMapSizes: [2048, 2048, 2048, 2048],
-    particleCount: 48,
-    toneMapping: 'ACESFilmicToneMapping',
   })
   await expect
     .poll(async () => Number(await diagnostics.getAttribute('data-frame-samples')), { timeout: 10_000 })

@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Vector3 } from 'three'
 import { ControlledOrbitCamera } from './camera/ControlledOrbitCamera'
 import { CameraToolbar } from './camera/CameraToolbar'
+import { occludingTerrainFeatureIds } from './camera/occlusion'
 import { cellsCoveredByTemplate, type AreaTemplate } from './domain/effects'
 import { MAP_SIZE_CELLS, type GridCell, type WorldPoint } from './domain/grid'
 import type { MoveIntent, TokenRenderState } from './domain/tokens'
@@ -27,6 +28,7 @@ import {
 } from './performance/ScenePerformanceMonitor'
 import { QUALITY_SETTINGS, type SceneQuality } from './performance/quality'
 import { WebGLContextBoundary } from './performance/WebGLContextBoundary'
+import type { TerrainFeature } from '../battle-maps/terrain'
 
 type BattleMapCameraProbeProps = {
   onReady: () => void
@@ -68,6 +70,18 @@ const FIXTURE_TOKENS: readonly TokenRenderState[] = [
 ]
 
 const PLAYER_TOKENS = FIXTURE_TOKENS.filter((token) => token.id !== 'hidden-token')
+
+const FIXTURE_TERRAIN: readonly TerrainFeature[] = [
+  {
+    id: 'fixture-wall',
+    kind: 'wall',
+    column: 98,
+    row: 101,
+    widthCells: 3,
+    depthCells: 1,
+    heightCells: 3,
+  },
+]
 
 const DM_VISIBILITY: VisibilityGrid = {
   width: MAP_SIZE_CELLS,
@@ -476,6 +490,16 @@ export function BattleMapCanvas() {
     stressMode
       ? tokens.find((token) => token.id === 'stress-object-050')?.cell ?? null
       : tokens.find((token) => token.id === 'fixture-token')?.cell ?? null
+  const cameraView = useBattleMapView((state) => state.cameraView)
+  const selectedTokenId = useBattleMapView((state) => state.selectedTokenId)
+  const selectedVisibleToken = tokens.find(
+    (token) => token.visible && token.id === selectedTokenId,
+  )
+  const fadedTerrainIds = occludingTerrainFeatureIds(
+    FIXTURE_TERRAIN,
+    selectedVisibleToken,
+    cameraView,
+  )
 
   useEffect(() => {
     window.addEventListener('battle-map:move-light', moveFixtureLight)
@@ -554,6 +578,7 @@ export function BattleMapCanvas() {
           onAnimatedTokenWorldPoint={recordAnimatedTokenPoint}
           onRemoteTokenAnimationComplete={completeRemoteTokenAnimation}
           qualitySettings={qualitySettings}
+          terrainFeatures={FIXTURE_TERRAIN}
           stressWalls={stressMode ? stressScene.walls : []}
           stressEffects={stressMode}
           onMaximumClassTextureRender={setMaximumClassTextureRender}
@@ -580,6 +605,15 @@ export function BattleMapCanvas() {
         renderedTokenPoint={animationDiagnostics.point}
         animationSampleCount={animationDiagnostics.sampleCount}
         activeAnimationCount={remoteTokenAnimations.length}
+      />
+      <output
+        hidden
+        data-testid="camera-diagnostics"
+        data-yaw={cameraView.yawDegrees.toFixed(3)}
+        data-pitch={cameraView.pitchDegrees.toFixed(3)}
+        data-zoom={cameraView.zoom.toFixed(3)}
+        data-focus={`${cameraView.focus.x.toFixed(3)}:${cameraView.focus.z.toFixed(3)}`}
+        data-faded-terrain-ids={[...fadedTerrainIds].sort().join(',')}
       />
       <output
         hidden
