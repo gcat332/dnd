@@ -216,7 +216,7 @@ export function CharacterModel({ state, onAttackEvent, onAnimationComplete, onDi
       {(Object.keys(EQUIPMENT_SOCKET) as EquipmentSlot[]).map((slot) => (
         state.equipment[slot] ? (
           <EquipmentFallbackBoundary
-            key={slot}
+            key={`${slot}-${state.equipment[slot]}`}
             itemId={state.equipment[slot]}
             onDiagnostics={onDiagnostics}
           >
