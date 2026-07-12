@@ -1,5 +1,6 @@
 import { useParams } from 'react-router'
 import { BattleMapListPanel } from '../battle-maps/BattleMapListPanel'
+import { DiceRollerPanel } from '../dice/DiceRollerPanel'
 import { RulesContentEditorPanel } from '../rules-content/RulesContentEditorPanel'
 import { InvitePanel } from './InvitePanel'
 
@@ -15,6 +16,7 @@ export function CampaignDashboardPage() {
       <InvitePanel campaignId={campaignId} />
       <BattleMapListPanel campaignId={campaignId} />
       <RulesContentEditorPanel campaignId={campaignId} />
+      <DiceRollerPanel campaignId={campaignId} />
       <p>Session views are not built yet.</p>
     </main>
   )
