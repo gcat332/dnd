@@ -145,12 +145,6 @@ test('wheel zoom and middle drag pan without changing Token interaction state', 
 
   const focusBefore = await camera.getAttribute('data-focus')
   await drag(page, canvas, 'middle', { x: 600, y: box.height / 2 }, { x: 800, y: box.height / 2 + 120 })
-  // WebKit occasionally drops synthetic middle-button movement when the
-  // production preview is hosted beside the harness panel; retry the same
-  // pan through MapControls' equivalent primary-pan binding if that happens.
-  if ((await camera.getAttribute('data-focus')) === focusBefore) {
-    await drag(page, canvas, 'left', { x: 600, y: box.height / 2 }, { x: 800, y: box.height / 2 + 120 })
-  }
   await expect.poll(async () => camera.getAttribute('data-focus')).not.toBe(focusBefore)
   await expect(camera).toHaveAttribute('data-zoom', zoom ?? '')
   await expect(tokens).toHaveAttribute('data-selected-token-id', '')
@@ -180,9 +174,6 @@ test('camera presets publish their exact logical views', async ({ page }) => {
   await page.mouse.wheel(0, -800)
   await expect.poll(async () => Number(await camera.getAttribute('data-zoom'))).not.toBe(4)
   await drag(page, canvas, 'middle', { x: 600, y: box.height / 2 }, { x: 800, y: box.height / 2 + 120 })
-  if ((await camera.getAttribute('data-focus')) === '100.000:100.000') {
-    await drag(page, canvas, 'left', { x: 600, y: box.height / 2 }, { x: 800, y: box.height / 2 + 120 })
-  }
   await expect.poll(async () => camera.getAttribute('data-focus')).not.toBe('100.000:100.000')
 
   const preservedPitch = await camera.getAttribute('data-pitch')

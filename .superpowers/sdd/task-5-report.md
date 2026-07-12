@@ -8,7 +8,7 @@ release gate because no physical desktop/tablet device was available here.
 
 ## Commit
 
-`96151e8` (`Prove controlled orbit camera behavior`)
+`59e2348` (`Harden controlled orbit browser evidence`)
 
 ## RED / GREEN
 
@@ -22,8 +22,8 @@ release gate because no physical desktop/tablet device was available here.
 - Occlusion RED: the first fixture wall position was below the default
   camera-to-token ray. Moving it to row 101 makes the pure ray calculation
   return `fixture-wall` at yaw 0 and clear after orbiting behind it.
-- Final GREEN: all focused camera tests, the full Vitest suite, production
-  build, and the complete Playwright matrix pass.
+- Focused camera, responsive, Vitest, and production-build checks pass. The
+  complete Playwright rerun remains short by two WebKit pan assertions.
 
 ## Verification
 
@@ -35,7 +35,8 @@ cd app && npm run build
 TypeScript and Vite build passed (existing large-chunk advisory only)
 
 cd app && npm run test:e2e
-51 Playwright tests passed across Chromium, Firefox, and WebKit
+49/51 Playwright tests passed in the final rerun; two WebKit camera tests
+retained the default focus after the required middle drag.
 
 git diff --check
 clean
@@ -54,6 +55,8 @@ unpassed; Three.js/R3F is not accepted on automated evidence alone.
 ## Files
 
 - `app/src/battle-map/BattleMapCanvas.tsx`
+- `app/src/battle-maps/BattleMapHarness.tsx`
+- `app/src/styles.css`
 - `app/src/router.tsx` (test-only harness route)
 - `app/playwright.config.ts` (harness build/preview environment)
 - `app/tests/e2e/controlled-orbit-camera.spec.ts`
@@ -107,7 +110,9 @@ cd app && npm run test:e2e -- tests/e2e/responsive-framing.spec.ts
                                             # 9/9 passed (3 engines)
 cd app && npm run test:e2e -- tests/e2e/performance-and-recovery.spec.ts --project=chromium
                                             # 1/1 passed
-cd app && npm run test:e2e                  # prior run 50/51; the sole Chromium
-                                            # high-state assertion race was fixed
+cd app && npm run test:e2e                  # 49/51 in the final run; Chromium
+                                            # and Firefox passed, while WebKit's
+                                            # middle-button pan focus assertion
+                                            # remained flaky in two camera tests
 git diff --check                            # clean
 ```
