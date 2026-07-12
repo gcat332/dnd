@@ -74,6 +74,10 @@ function isRulesObject(value: unknown): value is RulesObject {
     RULES_OBJECT_SOURCES.includes(value.source as RulesObjectSource) &&
     typeof value.name === 'string' &&
     typeof value.description === 'string' &&
+    // NOTE: ability-only slice — this validates EVERY type's mechanics as
+    // AbilityMechanics. When a follow-up plan adds spell/monster/item/etc.
+    // rows to this table, replace this with a type-keyed mechanics validator,
+    // or parseRulesObjects will silently drop those rows on read.
     isValidAbilityMechanics(value.mechanics)
   )
 }
