@@ -8,6 +8,18 @@ When you start a task: add an entry with what you're touching (issue #, files, b
 
 ---
 
+## 2026-07-12 — Codex (Controlled Orbit Camera implementation)
+
+**Task**: execute
+`docs/superpowers/plans/2026-07-12-controlled-orbit-camera-extension.md`
+with subagent-driven development.
+**Status**: in progress.
+**Touching**: `.worktrees/controlled-orbit-camera` on
+`feat/controlled-orbit-camera`; camera/store/scene/harness/e2e files listed in
+the plan. Token persistence and terrain authoring contracts are not in scope.
+
+---
+
 ## 2026-07-12 — Codex (controlled orbit and character planning)
 
 **Task**: write separate implementation plans for the approved 360-degree
