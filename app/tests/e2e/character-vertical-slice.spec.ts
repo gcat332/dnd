@@ -90,6 +90,11 @@ test('accepts a renderer-backed attack marker and reports optional asset fallbac
     /character-attack-character-knight-/,
   )
 
+  await dispatch(page, { type: 'animation', tokenId: 'character-mage', animation: 'attack' })
+  await expect.poll(async () => (await slice.getAttribute('data-emitted-event-effects')) ?? '', { timeout: 15_000 }).toMatch(
+    /character-attack-character-mage-\d+:fire_projectile/,
+  )
+
   await dispatch(page, {
     type: 'equipment',
     tokenId: 'character-mage',
@@ -139,6 +144,14 @@ test('captures named orbit readability evidence at representative camera angles'
       await page.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2 + 150)
       await page.mouse.up({ button: 'right' })
     }
+    if (pitch === '55') {
+      await expect(camera).toHaveAttribute('data-yaw', '0.000')
+      await expect(camera).toHaveAttribute('data-pitch', '55.000')
+    }
+    if (pitch === '90') {
+      await expect(camera).toHaveAttribute('data-yaw', '0.000')
+      await expect(camera).toHaveAttribute('data-pitch', '90.000')
+    }
     await expect.poll(async () => Number(await camera.getAttribute('data-pitch'))).toBeGreaterThanOrEqual(35)
     await expect.poll(async () => Number(await camera.getAttribute('data-pitch'))).toBeLessThanOrEqual(90)
     for (const yaw of ['0', '90', '180', '270']) {
@@ -155,6 +168,11 @@ test('captures named orbit readability evidence at representative camera angles'
       const focus = await camera.getAttribute('data-focus')
       expect(focus).toBe('100.000:100.000')
       expect(Number(await camera.getAttribute('data-zoom'))).toBeGreaterThanOrEqual(4)
+      const yawValue = Number(await camera.getAttribute('data-yaw'))
+      expect(Number.isFinite(yawValue)).toBe(true)
+      expect(yawValue).toBeGreaterThanOrEqual(0)
+      expect(yawValue).toBeLessThan(360)
+      if (yaw === '0' && (pitch === '55' || pitch === '90')) expect(yawValue).toBe(0)
     }
   }
 })

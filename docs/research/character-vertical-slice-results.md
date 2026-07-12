@@ -37,6 +37,12 @@ objects. Its renderer diagnostics report `data-object-count=240` and
 `data-character-mixer-count=40`; browser frame samples are asserted, but they
 are not a substitute for the physical-device gate below.
 
+The browser harness records object count, mixer count, frame samples, and
+nonblank/readability pixels. Decode timing and per-mixer CPU/GPU time are not
+exposed by Three.js/R3F or this Playwright harness, so those metrics are
+explicitly **unavailable**, not estimated. Physical FPS, frame-time, input
+latency, and load-time remain unmeasured as described below.
+
 The automated gates run with:
 
 ```text

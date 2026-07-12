@@ -16,6 +16,7 @@ const EMPTY_DIAGNOSTICS: CharacterSliceDiagnostics = {
   currentAnimations: {},
   equippedIds: {},
   emittedEventIds: [],
+  emittedEventEffects: [],
   activeEventIds: [],
   mixerCount: 0,
   assetErrorCount: 0,
@@ -66,6 +67,7 @@ export type CharacterSliceDiagnostics = Readonly<{
   currentAnimations: Readonly<Record<string, CharacterAnimationName>>
   equippedIds: Readonly<Record<string, EquippedVisuals>>
   emittedEventIds: readonly string[]
+  emittedEventEffects: readonly string[]
   activeEventIds: readonly string[]
   mixerCount: number
   assetErrorCount: number
@@ -241,6 +243,9 @@ function applyAction(
   const emittedEventIds = event && !current.diagnostics.emittedEventIds.includes(event.id)
     ? [...current.diagnostics.emittedEventIds, event.id]
     : current.diagnostics.emittedEventIds
+  const emittedEventEffects = event && !current.diagnostics.emittedEventEffects.includes(`${event.id}:${event.effectId}`)
+    ? [...current.diagnostics.emittedEventEffects, `${event.id}:${event.effectId}`]
+    : current.diagnostics.emittedEventEffects
   const currentAnimations: Record<string, CharacterAnimationName> = {}
   const equippedIds: Record<string, EquippedVisuals> = {}
   for (const token of nextTokens) {
@@ -256,6 +261,7 @@ function applyAction(
       currentAnimations,
       equippedIds,
       emittedEventIds,
+      emittedEventEffects,
       activeEventIds: nextEvents.map((candidate) => candidate.id),
       mixerCount: nextTokens.filter((token) => token.character).length,
       animationTransitions: transitions,
@@ -273,12 +279,16 @@ function applyPresentationEvent(
   const emittedEventIds = current.diagnostics.emittedEventIds.includes(event.id)
     ? current.diagnostics.emittedEventIds
     : [...current.diagnostics.emittedEventIds, event.id]
+  const emittedEventEffects = current.diagnostics.emittedEventEffects.includes(`${event.id}:${event.effectId}`)
+    ? current.diagnostics.emittedEventEffects
+    : [...current.diagnostics.emittedEventEffects, `${event.id}:${event.effectId}`]
   return {
     ...current,
     presentationEvents: nextEvents,
     diagnostics: {
       ...current.diagnostics,
       emittedEventIds,
+      emittedEventEffects,
       activeEventIds: nextEvents.map((candidate) => candidate.id),
     },
   }
@@ -301,6 +311,7 @@ function createSliceState(stress: boolean): CharacterSliceState {
       currentAnimations,
       equippedIds,
       emittedEventIds: [],
+      emittedEventEffects: [],
       activeEventIds: [],
       mixerCount: tokens.filter((token) => token.character).length,
       assetErrorCount: 0,
@@ -371,11 +382,11 @@ export function useCharacterSlice(enabled: boolean): CharacterSliceRuntime {
     })
   }, [])
 
-  const recordCharacterAttackEvent = useCallback((tokenId: string, _state: CharacterPresentationState) => {
+  const recordCharacterAttackEvent = useCallback((tokenId: string, state: CharacterPresentationState) => {
     setSlice((current) => {
       const target = current.tokens.find((token) => token.character && token.id !== tokenId)
       const event = makeEvent(
-        'melee_slash',
+        state.recipeId === 'kaykit-mage' ? 'fire_projectile' : 'melee_slash',
         tokenId,
         target?.id ?? null,
         `character-attack-${tokenId}-${sequence.current + 1}`,
@@ -443,6 +454,7 @@ export function CharacterSliceDiagnostics({ diagnostics }: Readonly<{ diagnostic
       data-current-animations={JSON.stringify(diagnostics.currentAnimations)}
       data-equipped-ids={JSON.stringify(diagnostics.equippedIds)}
       data-emitted-event-ids={diagnostics.emittedEventIds.join(',')}
+      data-emitted-event-effects={diagnostics.emittedEventEffects.join(',')}
       data-active-event-ids={diagnostics.activeEventIds.join(',')}
       data-mixer-count={diagnostics.mixerCount}
       data-asset-error-count={diagnostics.assetErrorCount}
