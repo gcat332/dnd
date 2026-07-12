@@ -1,21 +1,27 @@
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('./api', () => ({
   getBattleMap: vi.fn(),
+  listBattleMapTokens: vi.fn(),
+  moveToken: vi.fn(),
   setBattleMapTerrain: vi.fn(),
 }))
 
+const battleMapViewProps = vi.fn()
 vi.mock('../battle-map/BattleMapView', () => ({
-  BattleMapView: () => <div data-testid="battle-map-view" />,
+  BattleMapView: (props: unknown) => {
+    battleMapViewProps(props)
+    return <div data-testid="battle-map-view" />
+  },
 }))
 
 vi.mock('./TerrainEditorPanel', () => ({
   TerrainEditorPanel: () => <div data-testid="terrain-editor-panel" />,
 }))
 
-import { getBattleMap } from './api'
+import { getBattleMap, listBattleMapTokens } from './api'
 import { BattleMapPage } from './BattleMapPage'
 
 function renderAt(mapId: string) {
@@ -31,6 +37,8 @@ function renderAt(mapId: string) {
 describe('BattleMapPage', () => {
   beforeEach(() => {
     vi.mocked(getBattleMap).mockClear()
+    vi.mocked(listBattleMapTokens).mockReset().mockResolvedValue([])
+    battleMapViewProps.mockClear()
   })
 
   afterEach(() => {
@@ -72,5 +80,35 @@ describe('BattleMapPage', () => {
     ).toBeInTheDocument()
     expect(screen.queryByText(/loading map/i)).not.toBeInTheDocument()
     expect(screen.queryByTestId('battle-map-view')).not.toBeInTheDocument()
+  })
+
+  it('loads the map tokens and passes them to the battle map view', async () => {
+    vi.mocked(getBattleMap).mockResolvedValue({
+      id: 'map-1',
+      campaign_id: 'c1',
+      name: 'Map A',
+      created_by: 'u1',
+      created_at: 'now',
+      terrain: [],
+    })
+    vi.mocked(listBattleMapTokens).mockResolvedValue([
+      {
+        id: 't1',
+        battle_map_id: 'map-1',
+        label: 'Goblin',
+        color: '#4f9e63',
+        column: 100,
+        row: 100,
+        elevation: 0,
+      },
+    ])
+
+    renderAt('map-1')
+
+    await screen.findByTestId('battle-map-view')
+    await waitFor(() => {
+      const lastCall = battleMapViewProps.mock.calls.at(-1)?.[0] as { tokens: unknown[] }
+      expect(lastCall.tokens).toHaveLength(1)
+    })
   })
 })
