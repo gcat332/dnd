@@ -8,9 +8,10 @@ vi.mock('./api', () => ({
   listCampaignRulesObjects: vi.fn(),
   createAbility: vi.fn(),
   deleteRulesObject: vi.fn(),
+  updateAbility: vi.fn(),
 }))
 
-import { createAbility, deleteRulesObject, listCampaignRulesObjects } from './api'
+import { createAbility, deleteRulesObject, listCampaignRulesObjects, updateAbility } from './api'
 import { RulesContentEditorPanel } from './RulesContentEditorPanel'
 
 const FIREBOLT: RulesObject = {
@@ -78,5 +79,23 @@ describe('RulesContentEditorPanel', () => {
 
     expect(createAbility).not.toHaveBeenCalled()
     expect(await screen.findByText(/ability mechanics are out of the allowed range/i)).toBeInTheDocument()
+  })
+
+  it('edits an existing ability and saves via updateAbility', async () => {
+    vi.mocked(listCampaignRulesObjects).mockResolvedValue([FIREBOLT])
+    vi.mocked(updateAbility).mockResolvedValue({ ...FIREBOLT, name: 'Frostbolt' })
+    render(<RulesContentEditorPanel campaignId="c1" />)
+
+    fireEvent.click(await screen.findByRole('button', { name: /edit/i }))
+
+    const nameInput = screen.getByLabelText(/ability name/i)
+    expect(nameInput).toHaveValue('Firebolt') // form populated from the row
+    fireEvent.change(nameInput, { target: { value: 'Frostbolt' } })
+    fireEvent.click(screen.getByRole('button', { name: /save changes/i }))
+
+    await waitFor(() =>
+      expect(updateAbility).toHaveBeenCalledWith('r1', 'Frostbolt', expect.any(String), expect.any(Object)),
+    )
+    expect(await screen.findByText(/frostbolt/i, { selector: 'li' })).toBeInTheDocument()
   })
 })
