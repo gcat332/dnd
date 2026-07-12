@@ -9,8 +9,9 @@ Status: DONE
   `CharacterToken`, `TokenLayer`, `BattleMapScene`, and `BattleMapCanvas` carry
   those reports into the hidden slice diagnostics.
 - The GLB attack marker callback now travels through the scene and creates an
-  accepted `melee_slash` presentation event in the slice reducer. The E2E test
-  asserts both emitted and active renderer-backed event IDs.
+  accepted presentation event in the slice reducer. Knight attacks emit
+  `melee_slash`; Mage attacks emit `fire_projectile`, matching the recipe. The
+  E2E test asserts emitted/active renderer-backed IDs and the effect mapping.
 - A missing optional equipment URL is exercised as a real fallback; the
   character remains rendered with all three mixers and reports the asset error.
 - Stress mode renders the 40 character fixtures together with the existing 200
@@ -28,6 +29,10 @@ Status: DONE
 - Targeted combined stress E2E: PASS (Chromium).
 - Targeted orbit readability E2E: PASS (Chromium).
 - `git diff --check`: PASS.
+
+The browser harness measures object/mixer counts, frame samples, and canvas
+readability. GLB decode timing and per-mixer CPU/GPU timing are unavailable in
+this stack and are intentionally not estimated.
 
 Physical desktop/tablet FPS, frame-time, input-latency, and load-time remain
 unmeasured in this environment; the report continues to mark the production
