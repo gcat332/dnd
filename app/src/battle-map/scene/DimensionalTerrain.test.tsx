@@ -1,4 +1,5 @@
 import ReactThreeTestRenderer from '@react-three/test-renderer'
+import type { Mesh, MeshStandardMaterial } from 'three'
 import { expect, it } from 'vitest'
 import type { TerrainFeature } from '../../battle-maps/terrain'
 import { DimensionalTerrain } from './DimensionalTerrain'
@@ -29,5 +30,24 @@ it('renders an empty terrain group when given no features', async () => {
   const renderer = await ReactThreeTestRenderer.create(<DimensionalTerrain />)
   const group = renderer.scene.findByProps({ name: 'dimensional-terrain' })
   expect(group.children).toHaveLength(0)
+  await renderer.unmount()
+})
+
+it('fades only requested terrain features without mutating normal materials', async () => {
+  const renderer = await ReactThreeTestRenderer.create(
+    <DimensionalTerrain features={FEATURES} fadedFeatureIds={new Set(['w1'])} />,
+  )
+
+  const wall = renderer.scene.findByProps({ name: 'terrain-w1' })
+  const pillar = renderer.scene.findByProps({ name: 'terrain-p1' })
+  const wallMaterial = (wall.instance as Mesh).material as MeshStandardMaterial
+  const pillarMaterial = (pillar.instance as Mesh).material as MeshStandardMaterial
+  expect(wallMaterial.opacity).toBe(0.2)
+  expect(wallMaterial.transparent).toBe(true)
+  expect(wallMaterial.depthWrite).toBe(false)
+  expect(pillarMaterial.opacity).toBe(1)
+  expect(pillarMaterial.transparent).toBe(false)
+  expect(pillarMaterial.depthWrite).toBe(true)
+
   await renderer.unmount()
 })

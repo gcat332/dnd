@@ -4,11 +4,35 @@ import type { StressWall } from '../fixtures/createStressScene'
 
 const BOX_GEOMETRY = new BoxGeometry(1, 1, 1)
 
-const MATERIALS: Record<TerrainKind, MeshStandardMaterial> = {
+const MATERIALS: Readonly<Record<TerrainKind, MeshStandardMaterial>> = Object.freeze({
   wall: new MeshStandardMaterial({ color: '#73777b', roughness: 0.88 }),
   platform: new MeshStandardMaterial({ color: '#596d50', roughness: 0.94 }),
   pillar: new MeshStandardMaterial({ color: '#d6b759', roughness: 0.65 }),
-}
+})
+
+const FADED_MATERIALS: Readonly<Record<TerrainKind, MeshStandardMaterial>> = Object.freeze({
+  wall: new MeshStandardMaterial({
+    color: '#73777b',
+    roughness: 0.88,
+    transparent: true,
+    opacity: 0.2,
+    depthWrite: false,
+  }),
+  platform: new MeshStandardMaterial({
+    color: '#596d50',
+    roughness: 0.94,
+    transparent: true,
+    opacity: 0.2,
+    depthWrite: false,
+  }),
+  pillar: new MeshStandardMaterial({
+    color: '#d6b759',
+    roughness: 0.65,
+    transparent: true,
+    opacity: 0.2,
+    depthWrite: false,
+  }),
+})
 
 const STONE_MATERIAL = MATERIALS.wall
 
@@ -31,9 +55,14 @@ function TerrainBox({ name, position, scale, material }: TerrainBoxProps) {
 type DimensionalTerrainProps = Readonly<{
   features?: readonly TerrainFeature[]
   stressWalls?: readonly StressWall[]
+  fadedFeatureIds?: ReadonlySet<string>
 }>
 
-export function DimensionalTerrain({ features = [], stressWalls = [] }: DimensionalTerrainProps) {
+export function DimensionalTerrain({
+  features = [],
+  stressWalls = [],
+  fadedFeatureIds,
+}: DimensionalTerrainProps) {
   return (
     <group name="dimensional-terrain" dispose={null}>
       {features.map((feature) => {
@@ -44,7 +73,7 @@ export function DimensionalTerrain({ features = [], stressWalls = [] }: Dimensio
             name={`terrain-${feature.id}`}
             position={box.position}
             scale={box.scale}
-            material={MATERIALS[feature.kind]}
+            material={fadedFeatureIds?.has(feature.id) ? FADED_MATERIALS[feature.kind] : MATERIALS[feature.kind]}
           />
         )
       })}
