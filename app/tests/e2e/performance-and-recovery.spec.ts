@@ -69,9 +69,6 @@ test('profiles 200 objects, applies low quality, and recovers the committed scen
   await page.mouse.wheel(0, -2400)
   await expect(chunkDiagnostics).toHaveAttribute('data-center-chunk', '3:3')
   await expect(chunkDiagnostics).toHaveAttribute('data-visible-chunks', /(?:^|,)3:3(?:,|$)/)
-  await page.evaluate(() => {
-    window.dispatchEvent(new CustomEvent('battle-map:set-quality', { detail: { quality: 'high' } }))
-  })
   await expect(diagnostics).toHaveAttribute('data-maximum-class-detail-texture-count', '1', {
     timeout: 15_000,
   })
@@ -91,11 +88,16 @@ test('profiles 200 objects, applies low quality, and recovers the committed scen
     /[1-9]\d*/,
   )
   await expect(diagnostics).toHaveAttribute('data-stress-token-point', /.+/)
+  await page.evaluate(() => {
+    window.dispatchEvent(new CustomEvent('battle-map:set-quality', { detail: { quality: 'high' } }))
+  })
   await expect.poll(async () => {
     const state = JSON.parse((await diagnostics.getAttribute('data-renderer-state')) ?? '{}') as {
+      dpr?: number
       shadowCastingLights?: number
       shadowType?: string
       softShadows?: boolean
+      shadowMapSizes?: number[]
       particleCount?: number
       toneMapping?: string
     }
@@ -103,6 +105,11 @@ test('profiles 200 objects, applies low quality, and recovers the committed scen
   }).toMatchObject({
     dpr: expectedHighDpr,
     shadowCastingLights: 4,
+    shadowType: 'PCFShadowMap',
+    softShadows: true,
+    shadowMapSizes: [2048, 2048, 2048, 2048],
+    particleCount: 48,
+    toneMapping: 'ACESFilmicToneMapping',
   })
   await expect
     .poll(async () => Number(await diagnostics.getAttribute('data-frame-samples')), { timeout: 10_000 })

@@ -17,9 +17,9 @@ host, not physical-device measurements.
 
 Right-drag orbit, wheel zoom, middle-drag pan, camera presets, viewer-safe
 cutaway, hidden-Token selection safety, nonblank angle renders, and
-one-pointer versus two-pointer gesture separation are covered by the
-Playwright suite. No FPS, frame-time, draw-call, or input-latency values are
-claimed for this functional run.
+one-pointer versus two-pointer gesture separation are covered by the 51/51
+Playwright test matrix. No FPS, frame-time, draw-call, or input-latency values
+are claimed for this functional run.
 
 The physical-device gate was **NOT RUN** in this environment. Representative
 desktop Chrome/Safari and a physical tablet were not available, so there are no
@@ -78,7 +78,7 @@ The pointer metric measures time from the canvas `pointerdown` handler to the fi
 | Applied adaptive renderer state | PASS |
 | Native and forced renderer recovery in three browsers | PASS |
 | Responsive non-overlap/nonblank canvas in three browsers | PASS |
-| Complete Playwright matrix | PASS: 30/30 |
+| Complete Playwright matrix | PASS: 51/51 |
 | Desktop 60 FPS | FAIL in headless SwiftShader CI diagnostics: 16.61 FPS |
 | Tablet 30 FPS | FAIL in Playwright emulation CI diagnostics: 20.01 FPS |
 | Physical tablet 30 FPS | NOT RUN; unpassed release gate |
@@ -86,12 +86,22 @@ The pointer metric measures time from the canvas `pointerdown` handler to the fi
 ## Reproduction And Warnings
 
 ```bash
-npm --prefix prototypes/battle-map-renderer run build
-npm --prefix prototypes/battle-map-renderer test
-npm --prefix prototypes/battle-map-renderer run test:e2e
+cd app
+npm test
+npm run build
+npm run test:e2e
 ```
 
-Playwright's managed server executes `npm run build && npm run preview -- --host 127.0.0.1 --port 4173`, with server reuse disabled, so browser and performance runs profile the production bundle served by Vite preview rather than the development server. The two Chromium measurement contexts used 1440 x 900 at DPR 1 and 820 x 1180 at emulated DPR 2, respectively, against that managed production preview.
+The Playwright managed server builds and previews with
+`VITE_BATTLE_MAP_HARNESS=1`, `VITE_SUPABASE_URL=http://127.0.0.1:54321`, and
+`VITE_SUPABASE_ANON_KEY=e2e-harness-key`; server reuse is disabled. The harness
+flag adds the `/__harness` test route that composes `BattleMapCanvas` with the
+real `TerrainEditorPanel`; the other browser tests use the fixture canvas at
+`/`. Normal production builds omit both test routes. Browser and
+performance runs therefore profile the production bundle served by Vite
+preview rather than the development server. The two Chromium measurement
+contexts used 1440 x 900 at DPR 1 and 820 x 1180 at emulated DPR 2,
+respectively, against that managed production preview.
 
 The production build retains Vite's warning that the renderer bundle exceeds 500 kB. Browser tests retain React Three Fiber's upstream `THREE.Clock` deprecation warning. Neither warning changes the performance gate failures above.
 
