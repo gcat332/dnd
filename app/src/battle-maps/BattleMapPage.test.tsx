@@ -7,6 +7,8 @@ vi.mock('./api', () => ({
   listBattleMapTokens: vi.fn(),
   moveToken: vi.fn(),
   setBattleMapTerrain: vi.fn(),
+  createToken: vi.fn(),
+  deleteToken: vi.fn(),
 }))
 
 const battleMapViewProps = vi.fn()
@@ -19,6 +21,10 @@ vi.mock('../battle-map/BattleMapView', () => ({
 
 vi.mock('./TerrainEditorPanel', () => ({
   TerrainEditorPanel: () => <div data-testid="terrain-editor-panel" />,
+}))
+
+vi.mock('./TokenPalettePanel', () => ({
+  TokenPalettePanel: () => <div data-testid="token-palette-panel" />,
 }))
 
 import { getBattleMap, listBattleMapTokens, moveToken } from './api'
@@ -59,6 +65,7 @@ describe('BattleMapPage', () => {
     expect(await screen.findByRole('heading', { name: /keep — ground floor/i })).toBeInTheDocument()
     expect(screen.getByTestId('battle-map-view')).toBeInTheDocument()
     expect(screen.getByTestId('terrain-editor-panel')).toBeInTheDocument()
+    expect(screen.getByTestId('token-palette-panel')).toBeInTheDocument()
   })
 
   it('shows a not-found message when no map matches the id', async () => {

@@ -5,6 +5,7 @@ import type { MoveIntent } from '../battle-map/domain/tokens'
 import { type BattleMap, getBattleMap, listBattleMapTokens, moveToken } from './api'
 import type { TerrainFeature } from './terrain'
 import { TerrainEditorPanel } from './TerrainEditorPanel'
+import { TokenPalettePanel } from './TokenPalettePanel'
 import { type Token, tokenToRenderState } from './tokenModel'
 
 export function BattleMapPage() {
@@ -75,6 +76,7 @@ export function BattleMapPage() {
         onMoveIntent={handleMoveIntent}
       />
       <TerrainEditorPanel map={map} onTerrainChange={setTerrain} />
+      <TokenPalettePanel mapId={map.id} tokens={tokens} onTokensChange={setTokens} />
     </main>
   )
 }
