@@ -29,6 +29,11 @@ import {
 import { QUALITY_SETTINGS, type SceneQuality } from './performance/quality'
 import { WebGLContextBoundary } from './performance/WebGLContextBoundary'
 import type { TerrainFeature } from '../battle-maps/terrain'
+import {
+  CharacterSliceDiagnostics,
+  characterSliceEnabled,
+  useCharacterSlice,
+} from './characters/CharacterSlice'
 
 type BattleMapCameraProbeProps = {
   onReady: () => void
@@ -379,6 +384,8 @@ type BattleMapCanvasProps = Readonly<{
 export function BattleMapCanvas({ terrainFeatures = FIXTURE_TERRAIN }: BattleMapCanvasProps = {}) {
   const [viewer] = useState<Viewer>(fixtureViewer)
   const [stressMode] = useState(fixtureStressMode)
+  const [charactersEnabled] = useState(characterSliceEnabled)
+  const characterSlice = useCharacterSlice(charactersEnabled)
   const [stressScene] = useState(() => createStressScene(Date.now()))
   const [fixtureTokens, setFixtureTokens] = useState<readonly TokenRenderState[]>(() =>
     stressMode ? stressScene.interactiveObjects : FIXTURE_TOKENS,
@@ -467,14 +474,22 @@ export function BattleMapCanvas({ terrainFeatures = FIXTURE_TERRAIN }: BattleMap
     setRendererGeneration((generation) => generation + 1)
     setContextLost(false)
   }, [])
+  const forceCharacterContextLoss = useCallback(() => {
+    if (charactersEnabled) setContextLost(true)
+  }, [charactersEnabled])
   const forceFixtureQuality = useCallback((event: Event) => {
     const detail: unknown = (event as CustomEvent<unknown>).detail
     if (isRecord(detail) && isSceneQuality(detail.quality)) setQuality(detail.quality)
   }, [])
+  const sourceTokens = charactersEnabled ? characterSlice.tokens : fixtureTokens
   const tokens =
     viewer === 'dm'
-      ? fixtureTokens
-      : fixtureTokens.filter((token) => PLAYER_TOKENS.some((playerToken) => playerToken.id === token.id))
+      ? sourceTokens
+      : sourceTokens.filter((token) =>
+          charactersEnabled
+            ? token.visible && token.character?.recipeId === 'kaykit-knight'
+            : PLAYER_TOKENS.some((playerToken) => playerToken.id === token.id),
+        )
   const visibility = viewer === 'dm' ? DM_VISIBILITY : PLAYER_VISIBILITY
   const lights: readonly VisualLight[] = stressMode
     ? stressScene.lights
@@ -510,13 +525,15 @@ export function BattleMapCanvas({ terrainFeatures = FIXTURE_TERRAIN }: BattleMap
     window.addEventListener('battle-map:set-template', setFixtureTemplate)
     window.addEventListener('battle-map:remote-token-update', acceptRemoteTokenUpdate)
     window.addEventListener('battle-map:set-quality', forceFixtureQuality)
+    window.addEventListener('battle-map:character-context-loss', forceCharacterContextLoss)
     return () => {
       window.removeEventListener('battle-map:move-light', moveFixtureLight)
       window.removeEventListener('battle-map:set-template', setFixtureTemplate)
       window.removeEventListener('battle-map:remote-token-update', acceptRemoteTokenUpdate)
       window.removeEventListener('battle-map:set-quality', forceFixtureQuality)
+      window.removeEventListener('battle-map:character-context-loss', forceCharacterContextLoss)
     }
-  }, [acceptRemoteTokenUpdate, forceFixtureQuality, moveFixtureLight, setFixtureTemplate])
+  }, [acceptRemoteTokenUpdate, forceCharacterContextLoss, forceFixtureQuality, moveFixtureLight, setFixtureTemplate])
 
   return (
     <div className="battle-map-shell">
@@ -578,6 +595,7 @@ export function BattleMapCanvas({ terrainFeatures = FIXTURE_TERRAIN }: BattleMap
           visibility={visibility}
           lights={lights}
           targetTemplate={TARGET_TEMPLATES[templateKind]}
+          presentationEvents={charactersEnabled ? characterSlice.presentationEvents : undefined}
           remoteTokenAnimations={remoteTokenAnimations}
           onAnimatedTokenWorldPoint={recordAnimatedTokenPoint}
           onRemoteTokenAnimationComplete={completeRemoteTokenAnimation}
@@ -610,6 +628,7 @@ export function BattleMapCanvas({ terrainFeatures = FIXTURE_TERRAIN }: BattleMap
         animationSampleCount={animationDiagnostics.sampleCount}
         activeAnimationCount={remoteTokenAnimations.length}
       />
+      {charactersEnabled ? <CharacterSliceDiagnostics diagnostics={characterSlice.diagnostics} /> : null}
       <output
         hidden
         data-testid="camera-diagnostics"
