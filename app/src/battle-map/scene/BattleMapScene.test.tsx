@@ -1,5 +1,8 @@
 import ReactThreeTestRenderer from '@react-three/test-renderer'
 import { beforeEach, expect, it } from 'vitest'
+import type { Mesh, MeshStandardMaterial } from 'three'
+import { DEFAULT_CAMERA_VIEW } from '../camera/cameraView'
+import type { TerrainFeature } from '../../battle-maps/terrain'
 import type { AreaTemplate } from '../domain/effects'
 import type { VisibilityGrid } from '../domain/visibility'
 import { useBattleMapView } from '../state/useBattleMapView'
@@ -60,7 +63,10 @@ it('builds overview map and visibility layers', async () => {
 })
 
 it('builds matching detail map and visibility chunk layers', async () => {
-  useBattleMapView.getState().setCamera({ x: 100, z: 100 }, 48)
+  useBattleMapView.getState().publishCameraView(
+    { ...DEFAULT_CAMERA_VIEW, focus: { x: 100, z: 100 } },
+    48,
+  )
   const renderer = await ReactThreeTestRenderer.create(
     <BattleMapScene visibility={VISIBILITY} lights={LIGHTS} />,
   )
@@ -120,5 +126,42 @@ it('adds targeting and remote animation without bypassing Token visibility', asy
   expect(renderer.scene.findAllByProps({ name: /^target-cell-/ })).toHaveLength(5)
   expect(renderer.scene.findByProps({ name: 'animated-token-visible-token' }).type).toBe('Group')
   expect(renderer.scene.findAllByProps({ name: 'animated-token-hidden-token' })).toHaveLength(0)
+  await renderer.unmount()
+})
+
+it('fades only terrain occluding the visible selected token', async () => {
+  useBattleMapView.getState().selectToken('visible-token')
+  const features: readonly TerrainFeature[] = [
+    { id: 'occluder', kind: 'wall', column: 98, row: 101, widthCells: 4, depthCells: 1, heightCells: 3 },
+    { id: 'off-axis', kind: 'wall', column: 120, row: 101, widthCells: 1, depthCells: 1, heightCells: 3 },
+  ]
+  const renderer = await ReactThreeTestRenderer.create(
+    <BattleMapScene
+      terrainFeatures={features}
+      tokens={[
+        {
+          id: 'visible-token',
+          label: 'Visible Token',
+          cell: { column: 100, row: 100 },
+          elevation: 0,
+          color: '#37ff78',
+          visible: true,
+        },
+        {
+          id: 'hidden-token',
+          label: 'Hidden Token',
+          cell: { column: 100, row: 100 },
+          elevation: 0,
+          color: '#ff4f81',
+          visible: false,
+        },
+      ]}
+    />,
+  )
+
+  const occluderMaterial = renderer.scene.findByProps({ name: 'terrain-occluder' }).instance as Mesh
+  const offAxisMaterial = renderer.scene.findByProps({ name: 'terrain-off-axis' }).instance as Mesh
+  expect((occluderMaterial.material as MeshStandardMaterial).opacity).toBe(0.2)
+  expect((offAxisMaterial.material as MeshStandardMaterial).opacity).toBe(1)
   await renderer.unmount()
 })

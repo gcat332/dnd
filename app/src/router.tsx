@@ -27,6 +27,24 @@ function BattleMapRoute() {
 }
 
 export const routeConfig: RouteObject[] = [
+  ...(import.meta.env.VITE_BATTLE_MAP_HARNESS === '1'
+    ? [
+        {
+          path: '/',
+          lazy: async () => {
+            const { BattleMapCanvas } = await import('./battle-map/BattleMapCanvas')
+            return { Component: BattleMapCanvas }
+          },
+        },
+        {
+          path: '/__harness',
+          lazy: async () => {
+            const { BattleMapHarness } = await import('./battle-maps/BattleMapHarness')
+            return { Component: BattleMapHarness }
+          },
+        },
+      ]
+    : []),
   { path: '/login', element: <LoginPage /> },
   {
     element: <RequireAuth />,

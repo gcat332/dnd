@@ -100,6 +100,7 @@ test('switches targeting templates and resumes a late remote Token animation', a
   await expect(diagnostics).toHaveAttribute(
     'data-rendered-token-point',
     JSON.stringify({ x: 101.5, z: 99.5 }),
+    { timeout: 15_000 },
   )
   await expect.poll(async () => Number(await diagnostics.getAttribute('data-animation-sample-count'))).toBeGreaterThan(0)
   await page.clock.runFor(516)

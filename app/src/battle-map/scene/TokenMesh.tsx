@@ -1,3 +1,4 @@
+import { Html } from '@react-three/drei'
 import { useThree, type ThreeEvent } from '@react-three/fiber'
 import { useCallback, useEffect, useRef } from 'react'
 import { CylinderGeometry, Plane, Vector2, Vector3 } from 'three'
@@ -193,6 +194,16 @@ export function TokenMesh({ token, onMoveIntent }: TokenMeshProps) {
         emissive={selected ? token.color : '#000000'}
         emissiveIntensity={selected ? 0.18 : 0}
       />
+      {selected ? (
+        <Html
+          center
+          position={[0, TOKEN_HEIGHT / 2 + 0.3, 0]}
+          style={{ pointerEvents: 'none' }}
+          className="token-label"
+        >
+          {token.label}
+        </Html>
+      ) : null}
     </mesh>
   )
 }

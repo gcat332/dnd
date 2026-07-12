@@ -64,10 +64,11 @@ export function AnimatedToken({
   useLayoutEffect(() => {
     active.current = true
     reportGroupWorldPoint()
+    invalidate()
     return () => {
       active.current = false
     }
-  }, [animation, reportGroupWorldPoint])
+  }, [animation, invalidate, reportGroupWorldPoint])
 
   useFrame(() => {
     if (!active.current) return

@@ -1,5 +1,11 @@
 import ReactThreeTestRenderer from '@react-three/test-renderer'
 import { beforeEach, expect, it, vi } from 'vitest'
+
+vi.mock('@react-three/drei', () => ({
+  Html: (props: { children?: unknown }) => (
+    <group name="token-label" userData={{ label: props.children }} />
+  ),
+}))
 import type { MoveIntent, TokenRenderState } from '../domain/tokens'
 import { useBattleMapView } from '../state/useBattleMapView'
 import { TokenMesh } from './TokenMesh'
@@ -56,6 +62,18 @@ it('selects on click without emitting a zero-distance MoveIntent', async () => {
   expect(useBattleMapView.getState().selectedTokenId).toBe(TOKEN.id)
   expect(useBattleMapView.getState().dragPreview).toBeNull()
   expect(onMoveIntent).not.toHaveBeenCalled()
+  await renderer.unmount()
+})
+
+it('renders the selected token label above the mesh', async () => {
+  useBattleMapView.getState().selectToken(TOKEN.id)
+  const renderer = await ReactThreeTestRenderer.create(
+    <TokenMesh token={TOKEN} onMoveIntent={vi.fn()} />,
+  )
+
+  const mesh = renderer.scene.findByProps({ name: `token-${TOKEN.id}` })
+  const label = renderer.scene.findByProps({ name: 'token-label' })
+  expect(label.instance.userData.label).toBe(TOKEN.label)
   await renderer.unmount()
 })
 

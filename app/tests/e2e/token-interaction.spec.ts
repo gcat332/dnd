@@ -1,10 +1,44 @@
 import { expect, test } from '@playwright/test'
-import type { Locator } from '@playwright/test'
+import type { Locator, Page } from '@playwright/test'
 import { PNG } from 'pngjs'
 
 type ScreenPoint = Readonly<{ x: number; y: number }>
 
-async function locateFixtureToken(canvas: Locator): Promise<ScreenPoint> {
+async function locateFixtureToken(
+  page: Page,
+  canvas: Locator,
+  useDiagnostics = true,
+): Promise<ScreenPoint> {
+  if (useDiagnostics) {
+    const encoded = await page.getByTestId('scene-performance-diagnostics').getAttribute(
+      'data-interaction-token-point',
+    )
+    if (encoded) {
+      const point = JSON.parse(encoded) as ScreenPoint
+      const box = await canvas.boundingBox()
+      expect(box).not.toBeNull()
+      const image = PNG.sync.read(await canvas.screenshot())
+      const scaleX = image.width / box!.width
+      const scaleY = image.height / box!.height
+      const centerX = point.x * scaleX
+      const centerY = point.y * scaleY
+      await expect.poll(async () => {
+        const current = PNG.sync.read(await canvas.screenshot())
+        let greenPixels = 0
+        for (let y = Math.max(0, Math.floor(centerY - 60 * scaleY)); y <= Math.min(current.height - 1, Math.ceil(centerY + 60 * scaleY)); y += 1) {
+          for (let x = Math.max(0, Math.floor(centerX - 60 * scaleX)); x <= Math.min(current.width - 1, Math.ceil(centerX + 60 * scaleX)); x += 1) {
+            const index = (y * current.width + x) * 4
+            const red = current.data[index]!
+            const green = current.data[index + 1]!
+            const blue = current.data[index + 2]!
+            if (green > 80 && green > red * 1.45 && green > blue * 1.2) greenPixels += 1
+          }
+        }
+        return greenPixels
+      }, { timeout: 10_000 }).toBeGreaterThan(25)
+      return point
+    }
+  }
   const image = PNG.sync.read(await canvas.screenshot())
   const points: ScreenPoint[] = []
   const centerX = image.width / 2
@@ -40,7 +74,7 @@ test('previews a snapped Token drag and emits one MoveIntent on release', async 
   for (let step = 0; step < 10; step += 1) await page.mouse.wheel(0, -1_000)
   await expect(page.getByTestId('chunk-diagnostics')).toHaveAttribute('data-mode', 'detail')
 
-  const from = await locateFixtureToken(canvas)
+  const from = await locateFixtureToken(page, canvas)
   const encodedPoint = await page.getByTestId('scene-performance-diagnostics').getAttribute(
     'data-interaction-token-point',
   )
@@ -54,7 +88,7 @@ test('previews a snapped Token drag and emits one MoveIntent on release', async 
     'data-drag-preview',
     JSON.stringify({ tokenId: 'fixture-token', cell: { column: 102, row: 99 } }),
   )
-  const preview = await locateFixtureToken(canvas)
+  const preview = await locateFixtureToken(page, canvas, false)
   expect(preview.x - from.x).toBeGreaterThan(90)
 
   await page.mouse.up()

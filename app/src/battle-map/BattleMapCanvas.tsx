@@ -1,8 +1,9 @@
-import { MapControls } from '@react-three/drei'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Vector3 } from 'three'
-import type { MapControls as MapControlsImpl } from 'three-stdlib'
+import { ControlledOrbitCamera } from './camera/ControlledOrbitCamera'
+import { CameraToolbar } from './camera/CameraToolbar'
+import { occludingTerrainFeatureIds } from './camera/occlusion'
 import { cellsCoveredByTemplate, type AreaTemplate } from './domain/effects'
 import { MAP_SIZE_CELLS, type GridCell, type WorldPoint } from './domain/grid'
 import type { MoveIntent, TokenRenderState } from './domain/tokens'
@@ -27,13 +28,13 @@ import {
 } from './performance/ScenePerformanceMonitor'
 import { QUALITY_SETTINGS, type SceneQuality } from './performance/quality'
 import { WebGLContextBoundary } from './performance/WebGLContextBoundary'
+import type { TerrainFeature } from '../battle-maps/terrain'
 
-type BattleMapCameraProps = {
+type BattleMapCameraProbeProps = {
   onReady: () => void
   onVisibilityProbePoints: (points: VisibilityProbePoints) => void
   onStressTokenPoint: (point: ScreenPoint | null) => void
   stressTokenCell: GridCell | null
-  interactionsEnabled: boolean
 }
 
 type ScreenPoint = Readonly<{ x: number; y: number }>
@@ -69,6 +70,18 @@ const FIXTURE_TOKENS: readonly TokenRenderState[] = [
 ]
 
 const PLAYER_TOKENS = FIXTURE_TOKENS.filter((token) => token.id !== 'hidden-token')
+
+const FIXTURE_TERRAIN: readonly TerrainFeature[] = [
+  {
+    id: 'fixture-wall',
+    kind: 'wall',
+    column: 98,
+    row: 101,
+    widthCells: 3,
+    depthCells: 1,
+    heightCells: 3,
+  },
+]
 
 const DM_VISIBILITY: VisibilityGrid = {
   width: MAP_SIZE_CELLS,
@@ -175,28 +188,19 @@ function fixtureViewer(): Viewer {
   return new URLSearchParams(window.location.search).get('viewer') === 'player' ? 'player' : 'dm'
 }
 
-function BattleMapCamera({
+function BattleMapCameraProbe({
   onReady,
   onVisibilityProbePoints,
   onStressTokenPoint,
   stressTokenCell,
-  interactionsEnabled,
-}: BattleMapCameraProps) {
-  const controls = useRef<MapControlsImpl>(null)
+}: BattleMapCameraProbeProps) {
   const warmupFrame = useRef(0)
   const camera = useThree((state) => state.camera)
   const size = useThree((state) => state.size)
   const invalidate = useThree((state) => state.invalidate)
-  const setCamera = useBattleMapView((state) => state.setCamera)
-  const dragPreview = useBattleMapView((state) => state.dragPreview)
+  const cameraView = useBattleMapView((state) => state.cameraView)
 
-  const syncViewState = useCallback((publishProbePoints = true) => {
-    const target = controls.current?.target
-    const visibleCellSpan = Math.max(size.width, size.height) / camera.zoom
-    setCamera(
-      target ? { x: target.x, z: target.z } : { x: 100, z: 100 },
-      visibleCellSpan,
-    )
+  const publishProbePoints = useCallback(() => {
     camera.updateMatrixWorld()
     camera.updateProjectionMatrix()
     const projectCell = (cell: GridCell): ScreenPoint => {
@@ -206,48 +210,32 @@ function BattleMapCamera({
         y: ((1 - point.y) / 2) * size.height,
       }
     }
-    if (publishProbePoints) {
-      onVisibilityProbePoints({
-        visible: projectCell(VISIBILITY_PROBE_CELLS.visible),
-        explored: projectCell(VISIBILITY_PROBE_CELLS.explored),
-        hidden: projectCell(VISIBILITY_PROBE_CELLS.hidden),
-      })
-      onStressTokenPoint(stressTokenCell ? projectCell(stressTokenCell) : null)
-    }
+    onVisibilityProbePoints({
+      visible: projectCell(VISIBILITY_PROBE_CELLS.visible),
+      explored: projectCell(VISIBILITY_PROBE_CELLS.explored),
+      hidden: projectCell(VISIBILITY_PROBE_CELLS.hidden),
+    })
+    onStressTokenPoint(stressTokenCell ? projectCell(stressTokenCell) : null)
     invalidate()
-  }, [camera, invalidate, onStressTokenPoint, onVisibilityProbePoints, setCamera, size.height, size.width, stressTokenCell])
+  }, [camera, invalidate, onStressTokenPoint, onVisibilityProbePoints, size.height, size.width, stressTokenCell])
 
   useEffect(() => {
-    syncViewState(false)
     warmupFrame.current = 0
     invalidate()
-  }, [invalidate, syncViewState])
+  }, [cameraView, invalidate])
 
   useFrame(() => {
     if (warmupFrame.current >= 2) return
     warmupFrame.current += 1
     if (warmupFrame.current === 2) {
-      syncViewState()
+      publishProbePoints()
       onReady()
       return
     }
     invalidate()
   })
 
-  return (
-    <MapControls
-      ref={controls}
-      target={[100, 0, 100]}
-      enabled={interactionsEnabled && dragPreview === null}
-      enableDamping={false}
-      enableRotate={false}
-      minZoom={4}
-      maxZoom={36}
-      zoomSpeed={24}
-      screenSpacePanning={false}
-      onChange={() => syncViewState()}
-    />
-  )
+  return null
 }
 
 type TokenInteractionDiagnosticsProps = {
@@ -384,7 +372,11 @@ function isSceneQuality(value: unknown): value is SceneQuality {
   return value === 'high' || value === 'medium' || value === 'low'
 }
 
-export function BattleMapCanvas() {
+type BattleMapCanvasProps = Readonly<{
+  terrainFeatures?: readonly TerrainFeature[]
+}>
+
+export function BattleMapCanvas({ terrainFeatures = FIXTURE_TERRAIN }: BattleMapCanvasProps = {}) {
   const [viewer] = useState<Viewer>(fixtureViewer)
   const [stressMode] = useState(fixtureStressMode)
   const [stressScene] = useState(() => createStressScene(Date.now()))
@@ -502,6 +494,16 @@ export function BattleMapCanvas() {
     stressMode
       ? tokens.find((token) => token.id === 'stress-object-050')?.cell ?? null
       : tokens.find((token) => token.id === 'fixture-token')?.cell ?? null
+  const cameraView = useBattleMapView((state) => state.cameraView)
+  const selectedTokenId = useBattleMapView((state) => state.selectedTokenId)
+  const selectedVisibleToken = tokens.find(
+    (token) => token.visible && token.id === selectedTokenId,
+  )
+  const fadedTerrainIds = occludingTerrainFeatureIds(
+    terrainFeatures,
+    selectedVisibleToken,
+    cameraView,
+  )
 
   useEffect(() => {
     window.addEventListener('battle-map:move-light', moveFixtureLight)
@@ -533,6 +535,7 @@ export function BattleMapCanvas() {
         </div>
       </div>
       <div className="battle-map-viewport">
+        <CameraToolbar />
         <Canvas
         key={rendererGeneration}
         data-testid="battle-map-canvas"
@@ -562,12 +565,12 @@ export function BattleMapCanvas() {
           onQualityChange={setQuality}
           onMetrics={stressMode ? setMetrics : IGNORE_METRICS}
         />
-        <BattleMapCamera
+        <ControlledOrbitCamera enabled={!contextLost} />
+        <BattleMapCameraProbe
           onReady={markCameraReady}
           onVisibilityProbePoints={recordVisibilityProbePoints}
           onStressTokenPoint={setStressTokenPoint}
           stressTokenCell={interactionTokenCell}
-          interactionsEnabled={!contextLost}
         />
         <BattleMapScene
           tokens={tokens}
@@ -579,6 +582,7 @@ export function BattleMapCanvas() {
           onAnimatedTokenWorldPoint={recordAnimatedTokenPoint}
           onRemoteTokenAnimationComplete={completeRemoteTokenAnimation}
           qualitySettings={qualitySettings}
+          terrainFeatures={terrainFeatures}
           stressWalls={stressMode ? stressScene.walls : []}
           stressEffects={stressMode}
           onMaximumClassTextureRender={setMaximumClassTextureRender}
@@ -605,6 +609,15 @@ export function BattleMapCanvas() {
         renderedTokenPoint={animationDiagnostics.point}
         animationSampleCount={animationDiagnostics.sampleCount}
         activeAnimationCount={remoteTokenAnimations.length}
+      />
+      <output
+        hidden
+        data-testid="camera-diagnostics"
+        data-yaw={cameraView.yawDegrees.toFixed(3)}
+        data-pitch={cameraView.pitchDegrees.toFixed(3)}
+        data-zoom={cameraView.zoom.toFixed(3)}
+        data-focus={`${cameraView.focus.x.toFixed(3)}:${cameraView.focus.z.toFixed(3)}`}
+        data-faded-terrain-ids={[...fadedTerrainIds].sort().join(',')}
       />
       <output
         hidden

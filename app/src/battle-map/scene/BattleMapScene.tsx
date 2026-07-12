@@ -2,6 +2,7 @@ import { useFrame, useThree } from '@react-three/fiber'
 import { useEffect, useMemo, useRef } from 'react'
 import type { Group } from 'three'
 import type { TerrainFeature } from '../../battle-maps/terrain'
+import { occludingTerrainFeatureIds } from '../camera/occlusion'
 import { chunkAddressForCell, type ChunkAddress } from '../domain/chunks'
 import type { AreaTemplate } from '../domain/effects'
 import { MAP_SIZE_CELLS, type WorldPoint } from '../domain/grid'
@@ -56,11 +57,11 @@ export function sceneSelection(cameraCenter: { x: number; z: number }, visibleCe
 }
 
 export function useSceneSelection(): SceneSelection {
-  const cameraCenter = useBattleMapView((state) => state.cameraCenter)
+  const cameraFocus = useBattleMapView((state) => state.cameraView.focus)
   const visibleCellSpan = useBattleMapView((state) => state.visibleCellSpan)
   return useMemo(
-    () => sceneSelection(cameraCenter, visibleCellSpan),
-    [cameraCenter, visibleCellSpan],
+    () => sceneSelection(cameraFocus, visibleCellSpan),
+    [cameraFocus, visibleCellSpan],
   )
 }
 
@@ -136,10 +137,21 @@ export function BattleMapScene({
   const invalidate = useThree((state) => state.invalidate)
   const { mode, visibleChunks, centerChunk } = useSceneSelection()
   const visibleChunkKeys = visibleChunks.map(chunkAddressKey).join(',')
+  const selectedTokenId = useBattleMapView((state) => state.selectedTokenId)
+  const cameraView = useBattleMapView((state) => state.cameraView)
+  const selectedVisibleToken = useMemo(
+    () => tokens.filter((token) => token.visible).find((token) => token.id === selectedTokenId),
+    [selectedTokenId, tokens],
+  )
+  const fadedFeatureIds = useMemo(
+    () => occludingTerrainFeatureIds(terrainFeatures, selectedVisibleToken, cameraView),
+    [cameraView, selectedVisibleToken, terrainFeatures],
+  )
+  const fadedFeatureKey = [...fadedFeatureIds].join(',')
 
   useEffect(() => {
     invalidate()
-  }, [invalidate, mode, visibleChunkKeys])
+  }, [fadedFeatureKey, invalidate, mode, visibleChunkKeys])
 
   return (
     <>
@@ -160,7 +172,11 @@ export function BattleMapScene({
         onMaximumClassTextureRender={onMaximumClassTextureRender}
       />
       <ProceduralGrid />
-      <DimensionalTerrain features={terrainFeatures} stressWalls={stressWalls} />
+      <DimensionalTerrain
+        features={terrainFeatures}
+        stressWalls={stressWalls}
+        fadedFeatureIds={fadedFeatureIds}
+      />
       {stressEffects ? <StressEffect particleScale={qualitySettings.particleScale} /> : null}
       <TargetingLayer template={targetTemplate} />
       <TokenLayer
