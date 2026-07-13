@@ -114,11 +114,10 @@ export function ControlledOrbitCamera({
   }, [canvas])
 
   useEffect(() => {
-    // WebKit can omit middle-button movement from Drei's MapControls bridge.
-    // Apply the same target/camera translation here while preserving the
-    // user-facing middle-button gesture and published logical view.
-    const userAgent = navigator.userAgent
-    if (!/AppleWebKit/.test(userAgent) || /Chrome|Chromium/.test(userAgent)) return
+    // Keep middle-button pan reliable across browsers. Some browser/control
+    // combinations do not forward the gesture through Drei's bridge.
+    // Apply the target/camera translation here while preserving the same
+    // user-facing gesture and published logical view.
     let previous: { x: number; y: number } | null = null
     const handlePointerDown = (event: MouseEvent) => {
       if (event.button === 1) previous = { x: event.clientX, y: event.clientY }

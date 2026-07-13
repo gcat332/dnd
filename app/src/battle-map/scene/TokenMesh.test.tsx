@@ -29,6 +29,7 @@ type CaptureTarget = Readonly<{
 function pointerEvent(target: CaptureTarget): Record<string, unknown> {
   return {
     nativeEvent: { stopImmediatePropagation: vi.fn() },
+    button: 0,
     pointerId: 7,
     target,
   }
@@ -62,6 +63,21 @@ it('selects on click without emitting a zero-distance MoveIntent', async () => {
   expect(useBattleMapView.getState().selectedTokenId).toBe(TOKEN.id)
   expect(useBattleMapView.getState().dragPreview).toBeNull()
   expect(onMoveIntent).not.toHaveBeenCalled()
+  await renderer.unmount()
+})
+
+it('does not capture camera gestures from right or middle buttons', async () => {
+  const target = { setPointerCapture: vi.fn(), releasePointerCapture: vi.fn() }
+  const renderer = await ReactThreeTestRenderer.create(
+    <TokenMesh token={TOKEN} onMoveIntent={vi.fn()} />,
+  )
+  const mesh = renderer.scene.findByProps({ name: `token-${TOKEN.id}` })
+
+  await renderer.fireEvent(mesh, 'pointerDown', { ...pointerEvent(target), button: 2 })
+  await renderer.fireEvent(mesh, 'pointerDown', { ...pointerEvent(target), button: 1 })
+
+  expect(useBattleMapView.getState().selectedTokenId).toBeNull()
+  expect(target.setPointerCapture).not.toHaveBeenCalled()
   await renderer.unmount()
 })
 
