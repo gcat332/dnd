@@ -37,6 +37,20 @@ it('configures controlled tabletop orbit interactions', async () => {
   await renderer.unmount()
 })
 
+it('accepts a closer initial view for focused character previews', async () => {
+  const renderer = await ReactThreeTestRenderer.create(
+    <ControlledOrbitCamera initialView={{ focus: { x: 100, z: 100 }, yawDegrees: 0, pitchDegrees: 55, zoom: 12 }} />,
+  )
+
+  expect(useBattleMapView.getState().cameraView).toMatchObject({
+    focus: { x: 100, z: 100 },
+    pitchDegrees: 55,
+    zoom: 12,
+  })
+
+  await renderer.unmount()
+})
+
 it('disables camera interactions while a token drag is in progress', async () => {
   const renderer = await ReactThreeTestRenderer.create(<ControlledOrbitCamera />)
 

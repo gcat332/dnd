@@ -17,6 +17,7 @@ type ControlledOrbitCameraProps = {
   enabled?: boolean
   onReady?: () => void
   onViewChange?: (view: CameraView) => void
+  initialView?: CameraView
 }
 
 const TOP_VIEW_HORIZONTAL_OFFSET = 0.0001
@@ -25,6 +26,7 @@ export function ControlledOrbitCamera({
   enabled = true,
   onReady,
   onViewChange,
+  initialView = DEFAULT_CAMERA_VIEW,
 }: ControlledOrbitCameraProps) {
   const controls = useRef<MapControlsImpl>(null)
   const initialized = useRef(false)
@@ -83,16 +85,16 @@ export function ControlledOrbitCamera({
     const activeControls = controls.current
     if (!activeControls || initialized.current) return
     initialized.current = true
-    activeControls.target.set(DEFAULT_CAMERA_VIEW.focus.x, 0, DEFAULT_CAMERA_VIEW.focus.z)
+    activeControls.target.set(initialView.focus.x, 0, initialView.focus.z)
     const initialDistance = camera.position.distanceTo(activeControls.target)
-    camera.position.fromArray(cameraPositionForView(DEFAULT_CAMERA_VIEW, initialDistance))
-    camera.zoom = DEFAULT_CAMERA_VIEW.zoom
+    camera.position.fromArray(cameraPositionForView(initialView, initialDistance))
+    camera.zoom = initialView.zoom
     camera.updateMatrixWorld()
     camera.updateProjectionMatrix()
     activeControls.update()
-    publishView(DEFAULT_CAMERA_VIEW)
+    publishView(initialView)
     onReady?.()
-  }, [camera, onReady, publishView])
+  }, [camera, initialView, onReady, publishView])
 
   useEffect(() => {
     if (
@@ -158,7 +160,7 @@ export function ControlledOrbitCamera({
   return (
     <MapControls
       ref={controls}
-      target={[DEFAULT_CAMERA_VIEW.focus.x, 0, DEFAULT_CAMERA_VIEW.focus.z]}
+      target={[initialView.focus.x, 0, initialView.focus.z]}
       enabled={enabled && dragPreview === null}
       enableDamping={false}
       enableRotate

@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Vector3 } from 'three'
 import { ControlledOrbitCamera } from './camera/ControlledOrbitCamera'
 import { CameraToolbar } from './camera/CameraToolbar'
+import { DEFAULT_CAMERA_VIEW } from './camera/cameraView'
 import { occludingTerrainFeatureIds } from './camera/occlusion'
 import { cellsCoveredByTemplate, type AreaTemplate } from './domain/effects'
 import { MAP_SIZE_CELLS, type GridCell, type WorldPoint } from './domain/grid'
@@ -566,7 +567,7 @@ export function BattleMapCanvas({ terrainFeatures = FIXTURE_TERRAIN }: BattleMap
         camera={{
           position: [100, 150, 160],
           rotation: [-1.19, 0, 0],
-          zoom: stressMode ? 18 : 4,
+          zoom: stressMode ? 18 : charactersEnabled ? 12 : 4,
         }}
         gl={{ antialias: true, powerPreference: 'high-performance' }}
         dpr={[1, qualitySettings.maxDpr]}
@@ -586,7 +587,10 @@ export function BattleMapCanvas({ terrainFeatures = FIXTURE_TERRAIN }: BattleMap
           onQualityChange={setQuality}
           onMetrics={stressMode ? setMetrics : IGNORE_METRICS}
         />
-        <ControlledOrbitCamera enabled={!contextLost} />
+        <ControlledOrbitCamera
+          enabled={!contextLost}
+          initialView={charactersEnabled ? { ...DEFAULT_CAMERA_VIEW, zoom: 12 } : undefined}
+        />
         <BattleMapCameraProbe
           onReady={markCameraReady}
           onVisibilityProbePoints={recordVisibilityProbePoints}
