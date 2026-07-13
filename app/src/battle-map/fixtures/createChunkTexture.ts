@@ -13,17 +13,17 @@ const CHUNK_TEXTURE_SIZE = 64
 const OVERVIEW_TEXTURE_SIZE = 128
 const CELL_TEXTURE_PIXELS = 64
 
-function terrainColor(worldX: number, worldZ: number): readonly [number, number, number] {
+export function terrainColor(worldX: number, worldZ: number): readonly [number, number, number] {
   const variation = Math.sin(worldX * 0.17) * 7 + Math.cos(worldZ * 0.13) * 6
   const roadDistance = Math.abs(worldZ - (92 + Math.sin(worldX * 0.045) * 8))
   const waterDistance = Math.abs(worldX - (151 + Math.sin(worldZ * 0.055) * 9))
 
-  if (roadDistance < 3.2) return [126 + variation, 111 + variation, 78 + variation]
-  if (waterDistance < 5.5) return [48 + variation, 103 + variation, 116 + variation]
+  if (roadDistance < 3.2) return [158 + variation, 126 + variation, 76 + variation]
+  if (waterDistance < 5.5) return [42 + variation, 126 + variation, 176 + variation]
   if ((Math.floor(worldX / 12) + Math.floor(worldZ / 12)) % 7 === 0) {
-    return [82 + variation, 111 + variation, 69 + variation]
+    return [42 + variation, 86 + variation, 48 + variation]
   }
-  return [68 + variation, 93 + variation, 60 + variation]
+  return [112 + variation, 150 + variation, 78 + variation]
 }
 
 function createTexture(

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { DataTexture } from 'three'
-import { createChunkTexture, createOverviewTexture } from './createChunkTexture'
+import { createChunkTexture, createOverviewTexture, terrainColor } from './createChunkTexture'
 
 type TextureImage = {
   data: Uint8Array
@@ -20,18 +20,7 @@ function imageOf(texture: DataTexture): TextureImage {
 }
 
 function fixtureColor(worldX: number, worldZ: number): readonly number[] {
-  const variation = Math.sin(worldX * 0.17) * 7 + Math.cos(worldZ * 0.13) * 6
-  const roadDistance = Math.abs(worldZ - (92 + Math.sin(worldX * 0.045) * 8))
-  const waterDistance = Math.abs(worldX - (151 + Math.sin(worldZ * 0.055) * 9))
-  let color: readonly number[]
-
-  if (roadDistance < 3.2) color = [126 + variation, 111 + variation, 78 + variation]
-  else if (waterDistance < 5.5) color = [48 + variation, 103 + variation, 116 + variation]
-  else if ((Math.floor(worldX / 12) + Math.floor(worldZ / 12)) % 7 === 0) {
-    color = [82 + variation, 111 + variation, 69 + variation]
-  } else color = [68 + variation, 93 + variation, 60 + variation]
-
-  return [...new Uint8Array(color)]
+  return [...new Uint8Array(terrainColor(worldX, worldZ))]
 }
 
 function rgbAt(texture: DataTexture, x: number, y: number): readonly number[] {
@@ -59,6 +48,18 @@ function displayedWorldSample(
 }
 
 describe('chunk fixture texture coordinates', () => {
+  it('uses distinct visual colors for road, water, forest, and grass', () => {
+    const road = terrainColor(100, 92 + Math.sin(100 * 0.045) * 8)
+    const water = terrainColor(151 + Math.sin(100 * 0.055) * 9, 100)
+    const forest = terrainColor(0, 0)
+    const grass = terrainColor(12, 0)
+
+    expect(road[0]).toBeGreaterThan(road[2])
+    expect(water[2]).toBeGreaterThan(water[0])
+    expect(forest[1]).toBeLessThan(grass[1])
+    expect(grass[1]).toBeGreaterThan(grass[0])
+  })
+
   it('creates a maximum-class detail texture when explicitly requested', () => {
     const texture = createChunkTexture({ column: 2, row: 3 }, 2048)
 
