@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:harness": "VITE_BATTLE_MAP_HARNESS=1 VITE_SUPABASE_URL=http://127.0.0.1:54321 VITE_SUPABASE_ANON_KEY=e2e-harness-key vite",
     "preview": "vite preview",
     "build": "tsc --noEmit && vite build",
     "test": "vitest run",
