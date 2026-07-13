@@ -23,6 +23,7 @@ import {
 import { useBattleMapView } from '../state/useBattleMapView'
 import type { RemoteTokenAnimation } from './AnimatedToken'
 import { DimensionalTerrain } from './DimensionalTerrain'
+import { BiomeDetailLayer } from './BiomeDetailLayer'
 import { LightLayer, type VisualLight } from './LightLayer'
 import { chunkAddressKey, MapSurface } from './MapSurface'
 import { ProceduralGrid } from './ProceduralGrid'
@@ -186,6 +187,7 @@ export function BattleMapScene({
         maximumClassTextureAddress={stressEffects ? centerChunk : null}
         onMaximumClassTextureRender={onMaximumClassTextureRender}
       />
+      <BiomeDetailLayer visibleChunks={visibleChunks} enabled={mode === 'detail'} />
       <ProceduralGrid />
       <DimensionalTerrain
         features={terrainFeatures}

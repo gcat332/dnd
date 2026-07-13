@@ -132,7 +132,7 @@ test('captures named orbit readability evidence at representative camera angles'
   const camera = page.getByTestId('camera-diagnostics')
   await expect(camera).toHaveAttribute('data-yaw', '0.000')
   await expect(camera).toHaveAttribute('data-pitch', '55.000')
-  await expect(camera).toHaveAttribute('data-zoom', '4.000')
+  await expect(camera).toHaveAttribute('data-zoom', '18.000')
   await expect(camera).toHaveAttribute('data-focus', '100.000:100.000')
   for (const pitch of ['35', '55', '90']) {
     await page.getByRole('button', { name: pitch === '90' ? 'Top view' : 'Reset camera' }).click()
