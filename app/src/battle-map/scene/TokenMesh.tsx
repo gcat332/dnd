@@ -144,7 +144,7 @@ export function TokenMesh({ token, onMoveIntent, interactiveOnly = false }: Toke
   )
 
   const handlePointerDown = (event: ThreeEvent<PointerEvent>) => {
-    if (event.button !== 0) return
+    if (event.button !== undefined && event.button !== 0) return
     stopMapInteraction(event)
     selectToken(token.id)
     const target = pointerCaptureTarget(event)

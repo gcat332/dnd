@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "assets": [
+    { "id": "kaykit-tree", "biome": "forest", "url": "/assets/environment/kaykit-tree.glb", "source": "KayKit Forest Nature Pack", "license": "CC0-1.0" },
+    { "id": "kaykit-grass", "biome": "grass", "url": "/assets/environment/kaykit-grass.glb", "source": "KayKit Forest Nature Pack", "license": "CC0-1.0" },
+    { "id": "kaykit-rock", "biome": "road", "url": "/assets/environment/kaykit-rock.glb", "source": "KayKit Forest Nature Pack", "license": "CC0-1.0" },
+    { "id": "kaykit-mountain", "biome": "forest", "url": "/assets/environment/kaykit-mountain.glb", "source": "KayKit Medieval Hexagon Pack", "license": "CC0-1.0" },
+    { "id": "kaykit-river", "biome": "water", "url": "/assets/environment/kaykit-river.glb", "source": "KayKit Medieval Hexagon Pack", "license": "CC0-1.0" },
+    { "id": "quaternius-dragon", "biome": "encounter", "url": "/assets/environment/quaternius-dragon.glb", "source": "Quaternius via Poly Pizza", "license": "CC0-1.0" }
+  ]
+}

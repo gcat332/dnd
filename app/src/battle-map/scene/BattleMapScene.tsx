@@ -24,6 +24,7 @@ import { useBattleMapView } from '../state/useBattleMapView'
 import type { RemoteTokenAnimation } from './AnimatedToken'
 import { DimensionalTerrain } from './DimensionalTerrain'
 import { BiomeDetailLayer } from './BiomeDetailLayer'
+import { PrototypeDragon } from './PrototypeDragon'
 import { LightLayer, type VisualLight } from './LightLayer'
 import { chunkAddressKey, MapSurface } from './MapSurface'
 import { ProceduralGrid } from './ProceduralGrid'
@@ -86,6 +87,7 @@ type BattleMapSceneProps = {
   terrainFeatures?: readonly TerrainFeature[]
   stressWalls?: readonly StressWall[]
   stressEffects?: boolean
+  showPrototypeDragon?: boolean
   onMaximumClassTextureRender?: (diagnostic: MaximumClassTextureRender) => void
 }
 
@@ -144,6 +146,7 @@ export function BattleMapScene({
   terrainFeatures = NO_TERRAIN,
   stressWalls = [],
   stressEffects = false,
+  showPrototypeDragon = false,
   onMaximumClassTextureRender,
 }: BattleMapSceneProps = {}) {
   const invalidate = useThree((state) => state.invalidate)
@@ -187,13 +190,14 @@ export function BattleMapScene({
         maximumClassTextureAddress={stressEffects ? centerChunk : null}
         onMaximumClassTextureRender={onMaximumClassTextureRender}
       />
-      <BiomeDetailLayer visibleChunks={visibleChunks} enabled={mode === 'detail'} />
+      <BiomeDetailLayer visibleChunks={visibleChunks} focus={cameraView.focus} enabled={mode === 'detail'} />
       <ProceduralGrid />
       <DimensionalTerrain
         features={terrainFeatures}
         stressWalls={stressWalls}
         fadedFeatureIds={fadedFeatureIds}
       />
+      {showPrototypeDragon ? <PrototypeDragon /> : null}
       {stressEffects ? <StressEffect particleScale={qualitySettings.particleScale} /> : null}
       <TargetingLayer template={targetTemplate} />
       <TokenLayer

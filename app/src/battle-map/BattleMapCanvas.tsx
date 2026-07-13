@@ -520,7 +520,7 @@ export function BattleMapCanvas({ terrainFeatures = FIXTURE_TERRAIN }: BattleMap
     (token) => token.visible && token.id === selectedTokenId,
   )
   const fadedTerrainIds = occludingTerrainFeatureIds(
-    terrainFeatures,
+    charactersEnabled ? terrainFeatures.filter((feature) => feature.id !== 'fixture-wall') : terrainFeatures,
     selectedVisibleToken,
     cameraView,
   )
@@ -610,7 +610,8 @@ export function BattleMapCanvas({ terrainFeatures = FIXTURE_TERRAIN }: BattleMap
           onCharacterAttackEvent={charactersEnabled ? characterSlice.recordCharacterAttackEvent : undefined}
           onCharacterDiagnostics={charactersEnabled ? characterSlice.recordCharacterDiagnostics : undefined}
           qualitySettings={qualitySettings}
-          terrainFeatures={terrainFeatures}
+          terrainFeatures={charactersEnabled ? terrainFeatures.filter((feature) => feature.id !== 'fixture-wall') : terrainFeatures}
+          showPrototypeDragon={charactersEnabled}
           stressWalls={stressMode ? stressScene.walls : []}
           stressEffects={stressMode}
           onMaximumClassTextureRender={setMaximumClassTextureRender}

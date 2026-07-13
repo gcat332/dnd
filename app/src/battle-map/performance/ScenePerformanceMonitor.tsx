@@ -218,6 +218,12 @@ export function ScenePerformanceMonitor({
 
     if (now - windowStartedAt.current < 5_000) return
     const windowSamples = frameTimesForRollingWindow(frameTimes.current, now)
+    if (windowSamples.length < 10) {
+      // Demand-mode scenes can legitimately be idle between invalidations.
+      // A handful of samples is not enough FPS evidence for a quality change.
+      windowStartedAt.current = now
+      return
+    }
     const averageFrameTime =
       windowSamples.reduce((sum, value) => sum + value, 0) / windowSamples.length
     const candidate = qualityForAverageFps(averageFrameTime > 0 ? 1_000 / averageFrameTime : 0)
