@@ -567,7 +567,7 @@ export function BattleMapCanvas({ terrainFeatures = FIXTURE_TERRAIN }: BattleMap
         camera={{
           position: [100, 150, 160],
           rotation: [-1.19, 0, 0],
-          zoom: stressMode ? 18 : charactersEnabled ? 12 : 4,
+          zoom: stressMode ? 18 : charactersEnabled ? 18 : 4,
         }}
         gl={{ antialias: true, powerPreference: 'high-performance' }}
         dpr={[1, qualitySettings.maxDpr]}
@@ -589,7 +589,7 @@ export function BattleMapCanvas({ terrainFeatures = FIXTURE_TERRAIN }: BattleMap
         />
         <ControlledOrbitCamera
           enabled={!contextLost}
-          initialView={charactersEnabled ? { ...DEFAULT_CAMERA_VIEW, zoom: 12 } : undefined}
+          initialView={charactersEnabled ? { ...DEFAULT_CAMERA_VIEW, zoom: 18 } : undefined}
         />
         <BattleMapCameraProbe
           onReady={markCameraReady}
