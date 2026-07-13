@@ -4,6 +4,13 @@ Shared scratch log for the agents working in this repo (Claude Code, Codex) acro
 
 Newest entry on top. Keep entries short.
 
+## 2026-07-13 — Codex (handoff + next-step planning)
+
+**Task**: update the handoff after the ready-made environment/dragon asset slice and document the next implementation frontier.
+**Status**: handoff prepared; no application code is being changed in this task. Current `main` is pushed at `ad96b47` (`Add ready-made environment and dragon assets`). The `4174` dev server is stopped. Working tree is clean except the pre-existing untracked root `package-lock.json`; leave it untouched.
+**Current shipped state**: battle-map detail mode renders KayKit Forest Nature GLBs for trees/grass/rocks, KayKit Medieval Hexagon GLBs for mountains/rivers, and a Quaternius CC0 GLB dragon with a flying animation. Placement follows `useBattleMapView.cameraView.focus`; character mode removes the fixture wall and shows the dragon. `npm test` is 267/267 and `npm run build` passes.
+**Next plan**: `docs/superpowers/plans/2026-07-13-battle-map-asset-hardening.md` — add environment asset validation/provenance, camera-pan/LOD acceptance coverage, and replace fixture biome classification with persisted map terrain metadata before production asset expansion.
+
 When you start a task: add an entry with what you're touching (issue #, files, branch/worktree). When you pause, hand off, or finish: update the same entry's Status line rather than leaving it stale.
 
 ---
